@@ -87,3 +87,6 @@ ehthumbs.db
 
 # Folder config file
 Desktop.ini
+.vscode/
+.installer-outputpublishwin-x64/
+*.pdb
