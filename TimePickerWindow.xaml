@@ -1,0 +1,111 @@
+<Window x:Class="PCLockScreen.TimePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Select Time" 
+        Height="200" 
+        Width="350"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="ToolWindow"
+        Background="#F5F5F5">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Title -->
+        <TextBlock Grid.Row="0" 
+                   Text="Enter Time (HH:MM)" 
+                   FontSize="14" 
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,20"/>
+        
+        <!-- Time Input -->
+        <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Hours -->
+            <Border Grid.Column="0" 
+                    BorderBrush="#2196F3" 
+                    BorderThickness="2" 
+                    CornerRadius="5"
+                    Background="White"
+                    Width="100"
+                    Height="60"
+                    Margin="5"
+                    MouseDown="HoursBorder_MouseDown">
+                <TextBox x:Name="HoursTextBox" 
+                         Text="00"
+                         FontSize="32"
+                         FontWeight="Bold"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         TextAlignment="Center"
+                         VerticalContentAlignment="Center"
+                         MaxLength="2"
+                         PreviewTextInput="HoursTextBox_PreviewTextInput"
+                         TextChanged="HoursTextBox_TextChanged"
+                         GotFocus="HoursTextBox_GotFocus"/>
+            </Border>
+            
+            <!-- Colon Separator -->
+            <TextBlock Grid.Column="1" 
+                       Text=":" 
+                       FontSize="40"
+                       FontWeight="Bold"
+                       VerticalAlignment="Center"
+                       Margin="10,0"
+                       Foreground="#333"/>
+            
+            <!-- Minutes -->
+            <Border Grid.Column="2" 
+                    BorderBrush="#2196F3" 
+                    BorderThickness="2" 
+                    CornerRadius="5"
+                    Background="White"
+                    Width="100"
+                    Height="60"
+                    Margin="5"
+                    MouseDown="MinutesBorder_MouseDown">
+                <TextBox x:Name="MinutesTextBox" 
+                         Text="00"
+                         FontSize="32"
+                         FontWeight="Bold"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         TextAlignment="Center"
+                         VerticalContentAlignment="Center"
+                         MaxLength="2"
+                         PreviewTextInput="MinutesTextBox_PreviewTextInput"
+                         TextChanged="MinutesTextBox_TextChanged"
+                         GotFocus="MinutesTextBox_GotFocus"/>
+            </Border>
+        </Grid>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Center"
+                    Margin="0,10,0,0">
+            <Button Content="OK" 
+                    Click="OK_Click"
+                    Width="80"
+                    Height="30"
+                    Margin="0,0,10,0"
+                    IsDefault="True"/>
+            <Button Content="Cancel" 
+                    Click="Cancel_Click"
+                    Width="80"
+                    Height="30"
+                    IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

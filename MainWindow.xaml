@@ -1,0 +1,90 @@
+<Window x:Class="PCLockScreen.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PC Lock Screen Configuration" 
+        Height="600" Width="700"
+        WindowStartupLocation="CenterScreen">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="PC Lock Screen Configuration" 
+                   FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
+
+        <!-- Account Section: first screen is register/login -->
+        <GroupBox Grid.Row="1" Header="Account" Margin="0,0,0,15">
+            <StackPanel Margin="10">
+                <!-- Logged-out view -->
+                <StackPanel x:Name="LoggedOutPanel">
+                    <TextBlock Text="Email:"/>
+                    <TextBox x:Name="EmailTextBox" Margin="0,5,0,10"/>
+
+                    <TextBlock Text="Password:"/>
+                    <PasswordBox x:Name="AccountPasswordBox" Margin="0,5,0,10"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="Login" Click="Login_Click" Width="100" Height="30" Margin="0,0,10,0"/>
+                        <Button Content="Register" Click="Register_Click" Width="100" Height="30"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Logged-in view -->
+                <StackPanel x:Name="LoggedInPanel" Visibility="Collapsed">
+                    <TextBlock>
+                        <Run Text="Logged in as "/>
+                        <Run x:Name="LoggedInEmailText" Text="" FontWeight="Bold"/>
+                    </TextBlock>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+                        <Button Content="Refresh Schedule" Click="RefreshSchedule_Click" Width="130" Height="30" Margin="0,0,10,0"/>
+                        <Button Content="Logout" Click="Logout_Click" Width="100" Height="30"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock x:Name="AccountStatusText"
+                           Text=""
+                           Foreground="Gray"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- App Settings -->
+        <GroupBox Grid.Row="2" Header="App Settings" Margin="0,0,0,15">
+            <StackPanel Margin="10">
+                <CheckBox x:Name="RunAtStartup" Content="Run at Windows Startup" 
+                          Checked="RunAtStartup_Changed" Unchecked="RunAtStartup_Changed"/>
+                <TextBlock Text="Automatically start this app when Windows starts" 
+                           FontSize="10" Foreground="Gray" Margin="20,2,0,0"/>
+
+                <TextBlock Text="Lock schedule is fully managed from the server." Margin="0,10,0,5"/>
+                <TextBlock Text="View/manage the schedule from the web dashboard; this app only enforces it." 
+                           FontSize="10" Foreground="Gray" Margin="0,0,0,0"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Status Section -->
+        <GroupBox Grid.Row="3" Header="Status" Margin="0,0,0,15">
+            <StackPanel Margin="10">
+                <TextBlock x:Name="StatusText" Text="Not Active" FontWeight="Bold"/>
+                <TextBlock x:Name="TimeStatusText" Text="" Margin="0,5,0,0"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Control Buttons -->
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+            <Button Content="Activate Lock" Click="ActivateLock_Click" 
+                    Width="140" Height="35" Margin="0,0,10,0"/>
+            <Button Content="Exit" Click="Exit_Click" 
+                    Width="140" Height="35"/>
+        </StackPanel>
+    </Grid>
+    </ScrollViewer>
+</Window>
