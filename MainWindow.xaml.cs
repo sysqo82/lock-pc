@@ -429,64 +429,36 @@ namespace PCLockScreen
             }
             
             var config = configManager.LoadConfig();
+            Logger.Log($"MonitorTick: TimeRestrictionEnabled={config.TimeRestrictionEnabled}, PasswordSet={configManager.IsPasswordSet()}, BlockCount={config.TimeBlocks.Count}");
+            
             if (config.TimeRestrictionEnabled && configManager.IsPasswordSet())
             {
                 // If no blocks configured, don't lock
                 if (config.TimeBlocks.Count == 0)
+                {
+                    Logger.Log("MonitorTick: No time blocks configured");
                     return;
+                }
                 
                 var timeUntilLock = GetTimeUntilNextBlock(config);
+                Logger.Log($"MonitorTick: timeUntilLock={(timeUntilLock.HasValue ? timeUntilLock.Value.TotalSeconds.ToString("F0") + " seconds" : "null")}, 5minWarningShown={fiveMinuteWarningShown}, 1minWarningShown={warningShown}");
 
                 // Show first warning 5 minutes before lock (between 4-5 minutes window)
                 if (timeUntilLock.HasValue && timeUntilLock.Value.TotalSeconds > 240 && 
                     timeUntilLock.Value.TotalSeconds <= 300 && !fiveMinuteWarningShown)
                 {
+                    Logger.Log("MonitorTick: Triggering 5-minute warning");
                     fiveMinuteWarningShown = true;
-
-                    try
-                    {
-                        notifyIcon.ShowBalloonTip(
-                            15000,
-                            "⚠️ PC Lock Warning",
-                            "Your PC will be locked in 5 minutes.",
-                            ToolTipIcon.Warning
-                        );
-                    }
-                    catch { }
-
-                    MessageBox.Show(
-                        "Your PC will be locked in 5 minutes.\n\nPlease start wrapping up your work.",
-                        "PC Lock Warning",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning
-                    );
+                    ToastNotificationHelper.ShowWarningToast(5);
                 }
 
                 // Show second, stronger warning 1 minute before lock
                 if (timeUntilLock.HasValue && timeUntilLock.Value.TotalSeconds > 0 && 
                     timeUntilLock.Value.TotalSeconds <= 60 && !warningShown)
                 {
+                    Logger.Log("MonitorTick: Triggering 1-minute warning");
                     warningShown = true;
-
-                    // Show both tray notification and message box for visibility
-                    try
-                    {
-                        notifyIcon.ShowBalloonTip(
-                            20000,
-                            "⚠️ PC Lock Imminent",
-                            "Your PC will be locked in 1 minute!",
-                            ToolTipIcon.Warning
-                        );
-                    }
-                    catch { }
-
-                    // Also show a message box that's hard to miss
-                    MessageBox.Show(
-                        "Your PC will be locked in 1 minute!\n\nSave your work now.",
-                        "PC Lock Imminent",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning
-                    );
+                    ToastNotificationHelper.ShowUrgentToast();
                 }
                 
                 if (IsInBlockedPeriod(config))
@@ -556,6 +528,7 @@ namespace PCLockScreen
             var currentDay = now.DayOfWeek;
             TimeSpan? minTimeUntil = null;
 
+            // Check blocks for today
             foreach (var block in config.TimeBlocks)
             {
                 // Check if this block applies to today
@@ -566,6 +539,27 @@ namespace PCLockScreen
                     if (currentTime < startTime)
                     {
                         var timeUntil = startTime - currentTime;
+                        if (!minTimeUntil.HasValue || timeUntil < minTimeUntil.Value)
+                        {
+                            minTimeUntil = timeUntil;
+                        }
+                    }
+                }
+            }
+
+            // If no blocks found today, check tomorrow's blocks (within next 24 hours)
+            if (!minTimeUntil.HasValue)
+            {
+                var tomorrowDay = (DayOfWeek)(((int)currentDay + 1) % 7);
+                foreach (var block in config.TimeBlocks)
+                {
+                    if (block.Days.Contains(tomorrowDay))
+                    {
+                        TimeSpan startTime = TimeSpan.Parse(block.StartTime);
+                        // Time until tomorrow's block = remaining today + time to block tomorrow
+                        var timeUntilMidnight = TimeSpan.FromHours(24) - currentTime;
+                        var timeUntil = timeUntilMidnight + startTime;
+                        
                         if (!minTimeUntil.HasValue || timeUntil < minTimeUntil.Value)
                         {
                             minTimeUntil = timeUntil;
