@@ -337,7 +337,7 @@ namespace PCLockScreen
             monitorTimer.Tick += MonitorTimer_Tick;
             monitorTimer.Start();
             
-            // Start reminder checking timer (check every minute)
+            // Start reminder checking timer (check every 10 seconds)
             StartReminderChecking();
         }
 
@@ -349,7 +349,7 @@ namespace PCLockScreen
                     return;
 
                 reminderCheckTimer = new DispatcherTimer();
-                reminderCheckTimer.Interval = TimeSpan.FromMinutes(1);
+                reminderCheckTimer.Interval = TimeSpan.FromSeconds(10);
                 reminderCheckTimer.Tick += ReminderCheckTimer_Tick;
                 reminderCheckTimer.Start();
                 
@@ -744,6 +744,9 @@ namespace PCLockScreen
             resumeMenuItem.Click += (s, e) => ResumeMonitoring();
             resumeMenuItem.Visible = false;
             
+            var aboutItem = new ToolStripMenuItem("About");
+            aboutItem.Click += (s, e) => ShowAbout();
+            
             var exitItem = new ToolStripMenuItem("Exit");
             exitItem.Click += (s, e) => ExitWithPassword();
 
@@ -751,6 +754,7 @@ namespace PCLockScreen
             contextMenu.Items.Add(scheduleItem);
             contextMenu.Items.Add(resumeMenuItem);
             contextMenu.Items.Add(new ToolStripSeparator());
+            contextMenu.Items.Add(aboutItem);
             contextMenu.Items.Add(exitItem);
             notifyIcon.ContextMenuStrip = contextMenu;
 
@@ -793,6 +797,18 @@ namespace PCLockScreen
             this.Show();
             this.WindowState = WindowState.Normal;
             this.Activate();
+        }
+
+        private void ShowAbout()
+        {
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            var versionString = $"{version.Major}.{version.Minor}";
+            MessageBox.Show(
+                $"PC Lock Screen\nVersion {versionString}\n\nA time-based lock screen application with server integration.",
+                "About PC Lock Screen",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
+            );
         }
 
         private void ShowSchedule()
