@@ -395,10 +395,11 @@ namespace PCLockScreen
                     // Check if it's time for this reminder (within the current minute)
                     if (reminder.Time == currentTime)
                     {
-                        // Create unique key for this reminder instance (date + id)
-                        var reminderKey = $"{now:yyyy-MM-dd}_{reminder.Id}";
+                        // Create unique key for this reminder instance (date + id + time)
+                        // Including time allows edited reminders to show again at new time
+                        var reminderKey = $"{now:yyyy-MM-dd}_{reminder.Id}_{reminder.Time}";
                         
-                        // Only show if not already shown today
+                        // Only show if not already shown today at this time
                         if (!shownReminders.Contains(reminderKey))
                         {
                             shownReminders.Add(reminderKey);
