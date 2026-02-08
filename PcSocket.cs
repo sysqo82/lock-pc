@@ -16,9 +16,10 @@ namespace PCLockScreen
         private readonly string _serverUrl;
         private readonly Action<string> _commandHandler;
         private readonly Action _scheduleUpdateHandler;
+        private readonly Action _reminderUpdateHandler;
         private readonly Func<string> _statusProvider;
 
-        public PcSocket(string serverBaseUrl, string pcId, string pcName, Action<string> commandHandler = null, Action scheduleUpdateHandler = null, Func<string> statusProvider = null)
+        public PcSocket(string serverBaseUrl, string pcId, string pcName, Action<string> commandHandler = null, Action scheduleUpdateHandler = null, Func<string> statusProvider = null, Action reminderUpdateHandler = null)
         {
             if (string.IsNullOrWhiteSpace(serverBaseUrl))
                 throw new ArgumentException("Server base URL must be provided", nameof(serverBaseUrl));
@@ -30,6 +31,7 @@ namespace PCLockScreen
             _serverUrl = serverBaseUrl;
             _commandHandler = commandHandler;
             _scheduleUpdateHandler = scheduleUpdateHandler;
+            _reminderUpdateHandler = reminderUpdateHandler;
             _statusProvider = statusProvider;
 
             _socket = new SocketIOClient.SocketIO(serverBaseUrl, new SocketIOClient.SocketIOOptions
@@ -120,6 +122,19 @@ namespace PCLockScreen
                 catch (Exception ex)
                 {
                     Logger.LogError("Error invoking schedule update handler", ex);
+                }
+            });
+
+            _socket.On("reminder_update", response =>
+            {
+                try
+                {
+                    Logger.Log("Received reminder_update event from server");
+                    _reminderUpdateHandler?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error invoking reminder update handler", ex);
                 }
             });
 

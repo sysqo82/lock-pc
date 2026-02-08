@@ -67,6 +67,7 @@ namespace PCLockScreen
         private DispatcherTimer startupMonitorTimer;
         private DispatcherTimer schedulePollTimer;
         private DispatcherTimer statusReportTimer;
+        private DispatcherTimer reminderCheckTimer;
         private LockScreenWindow activeLockWindow = null;
         private DispatcherTimer cooldownTimer = null;
         private DispatcherTimer handshakeTimer = null;
@@ -80,6 +81,8 @@ namespace PCLockScreen
         private ToolStripMenuItem resumeMenuItem;
         private PcSocket pcSocket;
         private ScheduleWindow scheduleWindow;
+        private List<ServerSession.Reminder> cachedReminders = new List<ServerSession.Reminder>();
+        private HashSet<string> shownReminders = new HashSet<string>();
 
         
         public MainWindow()
@@ -203,7 +206,8 @@ namespace PCLockScreen
                             Logger.LogError("Status provider exception", ex);
                             return "Unknown";
                         }
-                    }
+                    },
+                    OnServerReminderUpdateReceived
                 );
                 await pcSocket.ConnectAsync();
             }
@@ -276,6 +280,34 @@ namespace PCLockScreen
             }));
         }
 
+        private void OnServerReminderUpdateReceived()
+        {
+            Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                try
+                {
+                    bool authOk = await ServerSession.EnsureLoggedInAsync(configManager);
+                    if (!authOk)
+                    {
+                        return;
+                    }
+
+                    cachedReminders = await ServerSession.GetRemindersAsync();
+                    Logger.Log($"Reminder update received: {cachedReminders.Count} reminders loaded");
+                    
+                    // Update lock screen if it's currently showing
+                    if (activeLockWindow != null && activeLockWindow.IsVisible)
+                    {
+                        activeLockWindow.UpdateReminders(GetTodaysReminders());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Failed to update reminders", ex);
+                }
+            }));
+        }
+
         private void CheckUnexpectedShutdown()
         {
             if (configManager.WasUnexpectedShutdown())
@@ -304,6 +336,96 @@ namespace PCLockScreen
             monitorTimer.Interval = TimeSpan.FromSeconds(5);
             monitorTimer.Tick += MonitorTimer_Tick;
             monitorTimer.Start();
+            
+            // Start reminder checking timer (check every minute)
+            StartReminderChecking();
+        }
+
+        private void StartReminderChecking()
+        {
+            try
+            {
+                if (reminderCheckTimer != null)
+                    return;
+
+                reminderCheckTimer = new DispatcherTimer();
+                reminderCheckTimer.Interval = TimeSpan.FromMinutes(1);
+                reminderCheckTimer.Tick += ReminderCheckTimer_Tick;
+                reminderCheckTimer.Start();
+                
+                // Load initial reminders
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        bool authOk = await ServerSession.EnsureLoggedInAsync(configManager);
+                        if (authOk)
+                        {
+                            cachedReminders = await ServerSession.GetRemindersAsync();
+                            Logger.Log($"Initial reminder load: {cachedReminders.Count} reminders");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError("Failed to load initial reminders", ex);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to start reminder checking", ex);
+            }
+        }
+
+        private void ReminderCheckTimer_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                var now = DateTime.Now;
+                var currentTime = now.ToString("HH:mm");
+                var currentDay = now.DayOfWeek;
+
+                // Check each reminder
+                foreach (var reminder in cachedReminders)
+                {
+                    // Check if reminder applies to today
+                    if (!reminder.Days.Contains(currentDay))
+                        continue;
+
+                    // Check if it's time for this reminder (within the current minute)
+                    if (reminder.Time == currentTime)
+                    {
+                        // Create unique key for this reminder instance (date + id + time)
+                        // Including time allows edited reminders to show again at new time
+                        var reminderKey = $"{now:yyyy-MM-dd}_{reminder.Id}_{reminder.Time}";
+                        
+                        // Only show if not already shown today at this time
+                        if (!shownReminders.Contains(reminderKey))
+                        {
+                            shownReminders.Add(reminderKey);
+                            Logger.Log($"Showing reminder: {reminder.Title} at {reminder.Time}");
+                            ReminderWindow.ShowReminder(reminder.Title);
+                        }
+                    }
+                }
+
+                // Clear old reminder keys (older than today) to prevent memory leak
+                var todayPrefix = now.ToString("yyyy-MM-dd");
+                shownReminders.RemoveWhere(key => !key.StartsWith(todayPrefix));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Error in reminder check timer", ex);
+            }
+        }
+
+        private List<ServerSession.Reminder> GetTodaysReminders()
+        {
+            var today = DateTime.Now.DayOfWeek;
+            return cachedReminders
+                .Where(r => r.Days.Contains(today))
+                .OrderBy(r => r.Time)
+                .ToList();
         }
 
         private void StartStartupMonitoring()
@@ -1238,6 +1360,10 @@ namespace PCLockScreen
 
             activeLockWindow = new LockScreenWindow(configManager);
             Logger.Log("Activating lock window");
+            
+            // Update the lock window with today's reminders
+            var todaysReminders = GetTodaysReminders();
+            activeLockWindow.UpdateReminders(todaysReminders);
 
             // Send status update to server
             pcSocket?.SendStatusAsync("Locked").ConfigureAwait(false);
