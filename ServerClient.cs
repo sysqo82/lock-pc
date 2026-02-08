@@ -98,6 +98,17 @@ namespace PCLockScreen
             return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Get the reminders from the server as raw JSON.
+        /// Expected path is /api/reminder and should return a JSON array
+        /// of reminder definitions.
+        /// </summary>
+        public async Task<string> GetRemindersJsonAsync()
+        {
+            var response = await _client.GetAsync("/api/reminder").ConfigureAwait(false);
+            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        }
+
         public void Dispose()
         {
             _client?.Dispose();

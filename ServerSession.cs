@@ -203,6 +203,22 @@ namespace PCLockScreen
             public List<string> Days { get; set; }
         }
 
+        public class ServerReminderDto
+        {
+            public int Id { get; set; }
+            public string Title { get; set; }
+            public string Time { get; set; }
+            public List<string> Days { get; set; }
+        }
+
+        public class Reminder
+        {
+            public int Id { get; set; }
+            public string Title { get; set; }
+            public string Time { get; set; }
+            public List<DayOfWeek> Days { get; set; }
+        }
+
         /// <summary>
         /// Fetch the lock schedule from the server. Expects a JSON array of
         /// objects like: [{ "startTime": "22:00", "endTime": "08:00", "days": ["Monday", ...] }]
@@ -331,6 +347,109 @@ namespace PCLockScreen
                 }
 
                 result.Add(block);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Fetch reminders from the server. Expects a JSON array of
+        /// objects like: [{ "id": 1, "title": "Take a shower", "time": "18:00", "days": ["mon", ...] }]
+        /// </summary>
+        public static async Task<List<Reminder>> GetRemindersAsync()
+        {
+            string json;
+            try
+            {
+                var client = GetClient();
+                json = await client.GetRemindersJsonAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                return new List<Reminder>();
+            }
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return new List<Reminder>();
+            }
+
+            List<ServerReminderDto> serverReminders;
+            try
+            {
+                serverReminders = JsonSerializer.Deserialize<List<ServerReminderDto>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<ServerReminderDto>();
+            }
+            catch
+            {
+                return new List<Reminder>();
+            }
+
+            var result = new List<Reminder>();
+
+            foreach (var sr in serverReminders)
+            {
+                if (sr == null || string.IsNullOrWhiteSpace(sr.Title))
+                    continue;
+
+                var reminder = new Reminder
+                {
+                    Id = sr.Id,
+                    Title = sr.Title,
+                    Time = sr.Time ?? "12:00",
+                    Days = new List<DayOfWeek>()
+                };
+
+                if (sr.Days != null)
+                {
+                    foreach (var d in sr.Days)
+                    {
+                        if (string.IsNullOrWhiteSpace(d))
+                            continue;
+
+                        var normalized = d.Trim().ToLowerInvariant();
+
+                        switch (normalized)
+                        {
+                            case "mon":
+                            case "monday":
+                                reminder.Days.Add(DayOfWeek.Monday);
+                                break;
+                            case "tue":
+                            case "tues":
+                            case "tuesday":
+                                reminder.Days.Add(DayOfWeek.Tuesday);
+                                break;
+                            case "wed":
+                            case "weds":
+                            case "wednesday":
+                                reminder.Days.Add(DayOfWeek.Wednesday);
+                                break;
+                            case "thu":
+                            case "thur":
+                            case "thurs":
+                            case "thursday":
+                                reminder.Days.Add(DayOfWeek.Thursday);
+                                break;
+                            case "fri":
+                            case "friday":
+                                reminder.Days.Add(DayOfWeek.Friday);
+                                break;
+                            case "sat":
+                            case "saturday":
+                                reminder.Days.Add(DayOfWeek.Saturday);
+                                break;
+                            case "sun":
+                            case "sunday":
+                                reminder.Days.Add(DayOfWeek.Sunday);
+                                break;
+                        }
+                    }
+                }
+
+                result.Add(reminder);
             }
 
             return result;

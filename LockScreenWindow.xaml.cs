@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -7,6 +8,12 @@ using System.Linq;
 
 namespace PCLockScreen
 {
+    public class ReminderDisplayItem
+    {
+        public string Title { get; set; }
+        public string Time { get; set; }
+    }
+
     public partial class LockScreenWindow : Window
     {
         private ConfigManager configManager;
@@ -359,6 +366,27 @@ namespace PCLockScreen
             // Just close this window, don't shutdown the app
             // Process protection remains active from MainWindow
             this.Close();
+        }
+
+        public void UpdateReminders(List<ServerSession.Reminder> reminders)
+        {
+            try
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var displayItems = reminders.Select(r => new ReminderDisplayItem
+                    {
+                        Title = r.Title,
+                        Time = r.Time
+                    }).ToList();
+
+                    RemindersListControl.ItemsSource = displayItems;
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to update reminders display", ex);
+            }
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
