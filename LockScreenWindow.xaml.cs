@@ -351,16 +351,13 @@ namespace PCLockScreen
             }
             catch { }
             
-            // Check if we're still in a lock period - if so, enable freeze mode
-            var config = configManager.LoadConfig();
-            if (config.TimeRestrictionEnabled && IsInBlockedPeriod(config))
+            // After a successful admin unlock, enter freeze mode so the
+            // PC remains unlocked until the user explicitly resumes monitoring
+            // from the tray menu. This prevents immediate or automatic re-locks.
+            var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
+            if (mainWindow != null)
             {
-                // Notify MainWindow to enter freeze mode
-                var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
-                if (mainWindow != null)
-                {
-                    mainWindow.EnterFreezeMode();
-                }
+                mainWindow.EnterFreezeMode();
             }
 
             // Just close this window, don't shutdown the app

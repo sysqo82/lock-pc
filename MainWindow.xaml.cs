@@ -1343,6 +1343,14 @@ namespace PCLockScreen
 
         private void ActivateLock()
         {
+            // Respect freeze mode: when freezeMode is active we should not
+            // automatically re-lock the PC. This prevents immediate relocking
+            // after an admin unlock until the user chooses "Resume Monitoring".
+            if (freezeMode)
+            {
+                Logger.Log("ActivateLock suppressed: freezeMode active");
+                return;
+            }
             // Ensure we only ever create a single LockScreenWindow instance
             try
             {
