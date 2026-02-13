@@ -24,7 +24,7 @@
        Usage: ensure Inno Setup's ISCC.exe is on PATH or set the
        MSBuild property InnoSetupCompiler to the full path. -->
   <PropertyGroup>
-    <InnoSetupCompiler>ISCC.exe</InnoSetupCompiler>
+    <InnoSetupCompiler>C:\Program Files (x86)\Inno Setup 6\ISCC.exe</InnoSetupCompiler>
     <InnoSetupScript>$(MSBuildProjectDirectory)\installer.iss</InnoSetupScript>
   </PropertyGroup>
 
