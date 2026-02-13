@@ -252,9 +252,12 @@ namespace PCLockScreen
                         return;
                     }
 
-                        // If the newly-fetched schedule indicates we should be
-                        // locked right now, activate the lock immediately — but
-                        // respect freeze mode (admin unlocked and requested pause).
+                    bool ok = await SyncScheduleFromServer();
+                    if (ok)
+                    {
+                        LoadConfiguration();
+                        UpdateStatus();
+
                         try
                         {
                             var cfg = configManager.LoadConfig();
@@ -268,17 +271,6 @@ namespace PCLockScreen
                                 {
                                     ActivateLock();
                                 }
-                            }
-                        }
-                        catch
-                        {
-                            // Ignore lock activation failures here.
-                        }
-                        {
-                            var cfg = configManager.LoadConfig();
-                            if (cfg.TimeRestrictionEnabled && IsInBlockedPeriod(cfg))
-                            {
-                                ActivateLock();
                             }
                         }
                         catch
