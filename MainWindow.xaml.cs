@@ -802,7 +802,7 @@ namespace PCLockScreen
         private void ShowAbout()
         {
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            var versionString = $"{version.Major}.{version.Minor}";
+            var versionString = $"{version.Major}.{version.Minor}{(version.Build > 0 ? "." + version.Build : "")}";
             MessageBox.Show(
                 $"PC Lock Screen\nVersion {versionString}\n\nA time-based lock screen application with server integration.",
                 "About PC Lock Screen",
@@ -828,6 +828,11 @@ namespace PCLockScreen
         public void EnterFreezeMode()
         {
             freezeMode = true;
+            // Record the unlock time immediately to prevent any immediate re-lock
+            try { lastUnlockAt = DateTime.Now; } catch { }
+            // Stop the monitor timer while in freeze mode to avoid any race where
+            // the monitor triggers ActivateLock before the admin intentionally resumes
+            try { if (monitorTimer != null) monitorTimer.Stop(); } catch { }
             if (resumeMenuItem != null)
             {
                 resumeMenuItem.Visible = true;
@@ -848,6 +853,9 @@ namespace PCLockScreen
         private void ResumeMonitoring()
         {
             freezeMode = false;
+            // Reset unlock cooldown and restart monitoring
+            try { lastUnlockAt = null; } catch { }
+            try { if (monitorTimer != null) monitorTimer.Start(); } catch { }
             warningShown = false;
             fiveMinuteWarningShown = false;
             if (resumeMenuItem != null)
