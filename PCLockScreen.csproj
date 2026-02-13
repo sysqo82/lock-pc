@@ -20,4 +20,22 @@
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
   </ItemGroup>
 
+  <!-- Optional Inno Setup integration: set InnoSetupCompiler to the full path of ISCC.exe to run the installer build automatically after publish -->
+  <PropertyGroup>
+    <!-- Default to the common Inno Setup installation path if present on the machine -->
+    <InnoSetupCompiler Condition=" '$(InnoSetupCompiler)' == '' ">C:\Program Files (x86)\Inno Setup 6\ISCC.exe</InnoSetupCompiler>
+    <!-- Path to the installer script (relative to project root) -->
+    <InnoSetupScript>installer.iss</InnoSetupScript>
+    <!-- Output folder for the compiled setup (will follow script's OutputDir) -->
+    <InnoSetupWorkingDir>$(MSBuildProjectDirectory)</InnoSetupWorkingDir>
+  </PropertyGroup>
+
+  <Target Name="RunInnoSetup" AfterTargets="Publish">
+    <!-- Only run if the compiler exists -->
+    <Message Importance="high" Text="RunInnoSetup: InnoSetupCompiler='$(InnoSetupCompiler)'" />
+    <Exec Condition="Exists('$(InnoSetupCompiler)')" WorkingDirectory="$(InnoSetupWorkingDir)"
+          Command="&quot;$(InnoSetupCompiler)&quot; &quot;$(InnoSetupScript)&quot;" />
+    <Message Condition="!Exists('$(InnoSetupCompiler)')" Importance="high" Text="RunInnoSetup: Inno Setup compiler not found at $(InnoSetupCompiler) — skipping installer build." />
+  </Target>
+
 </Project>
