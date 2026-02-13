@@ -20,4 +20,17 @@
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
   </ItemGroup>
 
+  <!-- Run Inno Setup to build installer automatically after publish
+       Usage: ensure Inno Setup's ISCC.exe is on PATH or set the
+       MSBuild property InnoSetupCompiler to the full path. -->
+  <PropertyGroup>
+    <InnoSetupCompiler>ISCC.exe</InnoSetupCompiler>
+    <InnoSetupScript>$(MSBuildProjectDirectory)\installer.iss</InnoSetupScript>
+  </PropertyGroup>
+
+  <Target Name="RunInnoSetupAfterPublish" AfterTargets="Publish">
+    <Message Text="Invoking Inno Setup: $(InnoSetupCompiler) $(InnoSetupScript)" Importance="high" />
+    <Exec Command="&quot;$(InnoSetupCompiler)&quot; &quot;$(InnoSetupScript)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" ContinueOnError="true" />
+  </Target>
+
 </Project>
