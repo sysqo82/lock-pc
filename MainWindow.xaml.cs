@@ -225,6 +225,12 @@ namespace PCLockScreen
             {
                 if (string.Equals(action, "lock", StringComparison.OrdinalIgnoreCase))
                 {
+                    if (freezeMode)
+                    {
+                        Logger.Log("OnServerCommandReceived: 'lock' command ignored due to freezeMode");
+                        return;
+                    }
+
                     ActivateLock();
                 }
             }));
@@ -246,20 +252,28 @@ namespace PCLockScreen
                         return;
                     }
 
-                    bool ok = await SyncScheduleFromServer();
-                    if (ok)
-                    {
-                        LoadConfiguration();
-                        UpdateStatus();
-
-                        // If the schedule window is open, refresh it too.
-                        if (scheduleWindow != null && scheduleWindow.IsVisible)
-                        {
-                            scheduleWindow.LoadSchedule();
-                        }
                         // If the newly-fetched schedule indicates we should be
-                        // locked right now, activate the lock immediately.
+                        // locked right now, activate the lock immediately — but
+                        // respect freeze mode (admin unlocked and requested pause).
                         try
+                        {
+                            var cfg = configManager.LoadConfig();
+                            if (cfg.TimeRestrictionEnabled && IsInBlockedPeriod(cfg))
+                            {
+                                if (freezeMode)
+                                {
+                                    Logger.Log("OnServerScheduleUpdateReceived: blocked period detected but freezeMode active — skipping ActivateLock");
+                                }
+                                else
+                                {
+                                    ActivateLock();
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore lock activation failures here.
+                        }
                         {
                             var cfg = configManager.LoadConfig();
                             if (cfg.TimeRestrictionEnabled && IsInBlockedPeriod(cfg))
