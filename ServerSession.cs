@@ -14,7 +14,7 @@ namespace PCLockScreen
     /// </summary>
     public static class ServerSession
     {
-        private const string DefaultBaseUrl = "https://lock-pc-server-233042610627.us-central1.run.app";
+        private const string DefaultBaseUrl = "https://dashboard.lockpc.co.uk";
 
         private static ServerClient _client;
         private static string _currentEmail;
@@ -137,8 +137,22 @@ namespace PCLockScreen
                     _currentEmail = email;
                     return true;
                 }
-
                 return false;
+            }
+            catch
+            {
+                // propagate connectivity problems by throwing so the UI can show a helpful message
+                throw;
+            }
+        }
+
+        public static async Task<bool> PingServerAsync()
+        {
+            try
+            {
+                var client = GetClient();
+                var resp = await client.PingAsync().ConfigureAwait(false);
+                return resp.IsSuccessStatusCode;
             }
             catch
             {
@@ -457,6 +471,16 @@ namespace PCLockScreen
 
         public static void Logout()
         {
+            try
+            {
+                // Request server-side logout so session cookies are cleared
+                if (_client != null)
+                {
+                    try { var _ = _client.LogoutAsync().ConfigureAwait(false).GetAwaiter().GetResult(); } catch { }
+                }
+            }
+            catch { }
+
             _currentEmail = null;
             if (_client != null)
             {

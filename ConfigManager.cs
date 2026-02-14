@@ -231,6 +231,14 @@ namespace PCLockScreen
             SaveConfig(config);
         }
 
+        public void ClearAccountCredentials()
+        {
+            var config = LoadConfig();
+            config.AccountEmail = string.Empty;
+            config.EncryptedAccountPassword = string.Empty;
+            SaveConfig(config);
+        }
+
         public string GetAccountEmail()
         {
             var config = LoadConfig();

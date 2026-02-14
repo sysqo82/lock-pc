@@ -1091,6 +1091,13 @@ namespace PCLockScreen
 
             try
             {
+                // Quick reachability check so we can provide a clearer error
+                bool serverUp = await ServerSession.PingServerAsync();
+                if (!serverUp)
+                {
+                    AccountStatusText.Text = "Cannot reach server — check tunnel or network.";
+                    return;
+                }
                 bool ok = await ServerSession.LoginAsync(email, password);
                 if (ok)
                 {
@@ -1273,8 +1280,8 @@ namespace PCLockScreen
 
         private void Logout_Click(object sender, RoutedEventArgs e)
         {
-            // Clear local account and session
-            configManager.SaveAccountEmail(string.Empty);
+            // Clear local account and session (remove saved credentials)
+            configManager.ClearAccountCredentials();
             ServerSession.Logout();
 
             EmailTextBox.Text = string.Empty;

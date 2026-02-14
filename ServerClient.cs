@@ -109,6 +109,30 @@ namespace PCLockScreen
             return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         }
 
+        public async Task<HttpResponseMessage> LogoutAsync()
+        {
+            try
+            {
+                return await _client.GetAsync("/logout").ConfigureAwait(false);
+            }
+            catch
+            {
+                return new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable);
+            }
+        }
+
+        public async Task<HttpResponseMessage> PingAsync()
+        {
+            try
+            {
+                return await _client.GetAsync("/").ConfigureAwait(false);
+            }
+            catch
+            {
+                return new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable);
+            }
+        }
+
         public void Dispose()
         {
             _client?.Dispose();
