@@ -1,14 +1,14 @@
 [Setup]
 AppName=PCLockScreen
 AppPublisher=Assaf Itzikson
-AppVersion=1.3.3
+AppVersion=2.0
 DefaultDirName={autopf}\PCLockScreen
 DefaultGroupName=PCLockScreen
 UninstallDisplayIcon={app}\PCLockScreen.exe
 Compression=lzma2
 SolidCompression=yes
 OutputDir=.\installer-output
-OutputBaseFilename=PCLockScreenInstaller
+OutputBaseFilename=PCLockScreenInstaller_v2.0
 ; Require elevation so installer can write registry/update system settings if needed
 PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=dialog
