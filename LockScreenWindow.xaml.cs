@@ -18,7 +18,6 @@ namespace PCLockScreen
     {
         private ConfigManager configManager;
         private DispatcherTimer timer;
-        private ProcessProtection processProtection;
 
         // Physical pixel bounds of the target screen for this window
         private System.Drawing.Rectangle targetScreenBounds;
@@ -53,10 +52,6 @@ namespace PCLockScreen
             this.configManager = configManager;
             this.targetScreenBounds = screenBounds;
             
-            // Process protection is already active from MainWindow
-            // Just track it for cleanup
-            processProtection = new ProcessProtection();
-            
             // Start timer to update display and check unlock conditions
             timer = new DispatcherTimer();
             timer.Interval = TimeSpan.FromSeconds(1);
@@ -76,8 +71,7 @@ namespace PCLockScreen
             {
                 SetWindowPos(hwnd, HWND_TOPMOST, targetScreenBounds.Left, targetScreenBounds.Top, targetScreenBounds.Width, targetScreenBounds.Height, SWP_SHOWWINDOW);
             }
-            Logger.Log($"LockScreenWindow loaded on screen ({targetScreenBounds.Left},{targetScreenBounds.Top}) HWND={hwnd.ToInt64()}, Visibility={this.Visibility}");
-            
+
             try
             {
                 // Block Ctrl+Alt+Delete (may not work due to Windows security)

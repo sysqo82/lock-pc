@@ -11,7 +11,6 @@ using System.Linq;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using MessageBox = System.Windows.MessageBox;
 
 namespace PCLockScreen
@@ -74,26 +73,6 @@ namespace PCLockScreen
         private readonly object lockActivationLock = new object();
         private bool isActivatingLocks = false;
 
-        // P/Invoke for per-monitor DPI
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
-
-        private const uint MONITOR_DEFAULTTONULL = 0x00000000;
-
-        [DllImport("shcore.dll")]
-        private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
-
-        private const int MDT_EFFECTIVE_DPI = 0;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct POINT { public int X; public int Y; public POINT(int x, int y) { X = x; Y = y; } }
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-        private static readonly IntPtr HWND_TOP = IntPtr.Zero;
-        private const uint SWP_NOZORDER = 0x0004;
-        private const uint SWP_NOACTIVATE = 0x0010;
-        private const uint SWP_SHOWWINDOW = 0x0040;
         private DispatcherTimer cooldownTimer = null;
         private DispatcherTimer handshakeTimer = null;
         private DateTime? lastUnlockAt = null;
@@ -1437,7 +1416,6 @@ namespace PCLockScreen
                 // Clear any leftover entries before starting
                 activeLockWindows.Clear();
                 var screens = Screen.AllScreens;
-                Logger.Log($"Detected {screens.Length} screen(s)");
                 foreach (var screen in screens)
                 {
                     var win = new LockScreenWindow(configManager, screen.Bounds);
