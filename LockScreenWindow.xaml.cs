@@ -20,6 +20,14 @@ namespace PCLockScreen
         private DispatcherTimer timer;
         private ProcessProtection processProtection;
 
+        // Physical pixel bounds of the target screen for this window
+        private System.Drawing.Rectangle targetScreenBounds;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private const uint SWP_SHOWWINDOW = 0x0040;
+
         // P/Invoke declarations to disable Task Manager and Alt+Tab
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -39,10 +47,11 @@ namespace PCLockScreen
         private const uint VK_F4 = 0x73;
         private const uint VK_LWIN = 0x5B;
 
-        public LockScreenWindow(ConfigManager configManager)
+        public LockScreenWindow(ConfigManager configManager, System.Drawing.Rectangle screenBounds)
         {
             InitializeComponent();
             this.configManager = configManager;
+            this.targetScreenBounds = screenBounds;
             
             // Process protection is already active from MainWindow
             // Just track it for cleanup
@@ -59,9 +68,15 @@ namespace PCLockScreen
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Register hotkeys to block common key combinations
+            // Position this window on its target screen using physical pixel coordinates.
+            // This must happen in Loaded (before WPF renders) to avoid the primary-monitor snap.
             var helper = new System.Windows.Interop.WindowInteropHelper(this);
             var hwnd = helper.Handle;
+            if (hwnd != IntPtr.Zero && targetScreenBounds != System.Drawing.Rectangle.Empty)
+            {
+                SetWindowPos(hwnd, HWND_TOPMOST, targetScreenBounds.Left, targetScreenBounds.Top, targetScreenBounds.Width, targetScreenBounds.Height, SWP_SHOWWINDOW);
+            }
+            Logger.Log($"LockScreenWindow loaded on screen ({targetScreenBounds.Left},{targetScreenBounds.Top}) HWND={hwnd.ToInt64()}, Visibility={this.Visibility}");
             
             try
             {
@@ -328,6 +343,26 @@ namespace PCLockScreen
                 ErrorMessage.Text = "Incorrect password. Access denied.";
                 AdminPasswordInput.Clear();
             }
+        }
+
+        /// <summary>
+        /// Stops the timer and closes this window regardless of OnClosing guard.
+        /// Called by MainWindow when another lock screen is unlocked by the user.
+        /// </summary>
+        public void ForceClose()
+        {
+            try { timer?.Stop(); } catch { }
+            try
+            {
+                var helper = new System.Windows.Interop.WindowInteropHelper(this);
+                var hwnd = helper.Handle;
+                UnregisterHotKey(hwnd, HOTKEY_ID_CTRL_ALT_DEL);
+                UnregisterHotKey(hwnd, HOTKEY_ID_ALT_TAB);
+                UnregisterHotKey(hwnd, HOTKEY_ID_ALT_F4);
+                UnregisterHotKey(hwnd, HOTKEY_ID_WIN_KEY);
+            }
+            catch { }
+            this.Close();
         }
 
         private void UnlockAndClose()
