@@ -68,7 +68,11 @@ namespace PCLockScreen
         private DispatcherTimer schedulePollTimer;
         private DispatcherTimer statusReportTimer;
         private DispatcherTimer reminderCheckTimer;
-        private LockScreenWindow activeLockWindow = null;
+        private List<LockScreenWindow> activeLockWindows = new List<LockScreenWindow>();
+        private bool lockWindowsClosing = false;
+        private readonly object lockActivationLock = new object();
+        private bool isActivatingLocks = false;
+
         private DispatcherTimer cooldownTimer = null;
         private DispatcherTimer handshakeTimer = null;
         private DateTime? lastUnlockAt = null;
@@ -301,10 +305,13 @@ namespace PCLockScreen
                     cachedReminders = await ServerSession.GetRemindersAsync();
                     Logger.Log($"Reminder update received: {cachedReminders.Count} reminders loaded");
                     
-                    // Update lock screen if it's currently showing
-                    if (activeLockWindow != null && activeLockWindow.IsVisible)
+                    // Update lock screens if any are currently showing
+                    if (activeLockWindows.Any(w => w.IsVisible))
                     {
-                        activeLockWindow.UpdateReminders(GetTodaysReminders());
+                        foreach (var w in activeLockWindows.Where(x => x.IsVisible))
+                        {
+                            try { w.UpdateReminders(GetTodaysReminders()); } catch { }
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -1364,29 +1371,33 @@ namespace PCLockScreen
 
         private void ActivateLock()
         {
-            // Ensure we only ever create a single LockScreenWindow instance
-            try
+            // Ensure we only ever create LockScreenWindow instances when none are visible
+
+            // Prevent concurrent activation attempts which could create duplicate windows
+            lock (lockActivationLock)
             {
-                if (activeLockWindow != null && activeLockWindow.IsVisible)
+                if (isActivatingLocks || activeLockWindows.Any())
                 {
                     try
                     {
-                        Logger.Log("ActivateLock called but LockScreenWindow already visible — bringing to front");
-                        activeLockWindow.Activate();
-                        activeLockWindow.Topmost = true; // ensure on top briefly
-                        activeLockWindow.Topmost = false;
+                        if (activeLockWindows.Any())
+                        {
+                            Logger.Log("ActivateLock called but LockScreenWindow(s) already active — bringing to front");
+                            var existing = activeLockWindows.First();
+                            existing.Activate();
+                            existing.Topmost = true; // ensure on top briefly
+                            existing.Topmost = false;
+                        }
                     }
                     catch (Exception ex)
                     {
                         Logger.LogError("Failed to bring existing LockScreenWindow to front", ex);
                     }
-                    return; // don't create a new lock window
+                    return; // don't create new lock windows
                 }
+                isActivatingLocks = true;
             }
-            catch (Exception ex)
-            {
-                Logger.LogError("Error checking for existing LockScreenWindow", ex);
-            }
+
             // Stop monitoring timer before locking
             if (monitorTimer != null)
             {
@@ -1395,80 +1406,130 @@ namespace PCLockScreen
             warningShown = false; // Reset for next time
             fiveMinuteWarningShown = false;
 
-            activeLockWindow = new LockScreenWindow(configManager);
-            Logger.Log("Activating lock window");
-            
-            // Update the lock window with today's reminders
+            Logger.Log("Activating lock window(s) on all screens");
+
+            // Update the lock windows with today's reminders
             var todaysReminders = GetTodaysReminders();
-            activeLockWindow.UpdateReminders(todaysReminders);
 
-            // Send status update to server
-            pcSocket?.SendStatusAsync("Locked").ConfigureAwait(false);
-
-            activeLockWindow.Closed += (s, e) =>
+            try
             {
-                try
+                // Clear any leftover entries before starting
+                activeLockWindows.Clear();
+                var screens = Screen.AllScreens;
+                foreach (var screen in screens)
                 {
-                    Logger.Log("Lock window closed by user");
+                    var win = new LockScreenWindow(configManager, screen.Bounds);
+                    win.WindowStartupLocation = WindowStartupLocation.Manual;
+                    win.ShowInTaskbar = false;
 
-                    // Record unlock time to avoid immediate re-lock from monitor
-                    lastUnlockAt = DateTime.Now;
+                    win.UpdateReminders(todaysReminders);
 
-                    // When lock window closes, restart monitoring (reuse existing timer)
-                    if (monitorTimer != null)
+                    // Attach a Closed handler that ensures unlock logic runs once
+                    var lockWin = win; // capture local
+                    lockWin.Closed += (s, e) =>
                     {
-                        monitorTimer.Start();
-                    }
+                        if (lockWindowsClosing)
+                            return;
 
-                    // Send status update to server
-                    pcSocket?.SendStatusAsync("Unlocked").ConfigureAwait(false);
-
-                    // Schedule a forced re-evaluation after the unlock cooldown so
-                    // we don't rely solely on the monitor tick timing. Only one
-                    // cooldown timer will be active at any time.
-                    try
-                    {
-                        if (cooldownTimer != null)
+                        lockWindowsClosing = true;
+                        try
                         {
-                            cooldownTimer.Stop();
-                            cooldownTimer = null;
-                        }
+                            Logger.Log("Lock window closed by user");
+                            // Record unlock time to avoid immediate re-lock from monitor
+                            lastUnlockAt = DateTime.Now;
 
-                        cooldownTimer = new DispatcherTimer();
-                        cooldownTimer.Interval = TimeSpan.FromSeconds(UnlockCooldownSeconds);
-                        cooldownTimer.Tick += async (ts, te) =>
-                        {
+                            // Close any other lock windows
+                            foreach (var other in activeLockWindows.ToList())
+                            {
+                                try
+                                {
+                                    if (other != lockWin && other.IsVisible)
+                                        other.ForceClose();
+                                }
+                                catch { }
+                            }
+
+                            // When lock window closes, restart monitoring (reuse existing timer)
+                            if (monitorTimer != null)
+                            {
+                                monitorTimer.Start();
+                            }
+
+                            // Send status update to server
+                            pcSocket?.SendStatusAsync("Unlocked").ConfigureAwait(false);
+
+                            // Schedule a forced re-evaluation after the unlock cooldown so
+                            // we don't rely solely on the monitor tick timing. Only one
+                            // cooldown timer will be active at any time.
                             try
                             {
-                                cooldownTimer.Stop();
-                                cooldownTimer = null;
-                                Logger.Log("Cooldown expired — re-evaluating schedule for possible re-lock");
-                                await EvaluateScheduleAndMaybeLock();
+                                if (cooldownTimer != null)
+                                {
+                                    cooldownTimer.Stop();
+                                    cooldownTimer = null;
+                                }
+
+                                cooldownTimer = new DispatcherTimer();
+                                cooldownTimer.Interval = TimeSpan.FromSeconds(UnlockCooldownSeconds);
+                                cooldownTimer.Tick += async (ts, te) =>
+                                {
+                                    try
+                                    {
+                                        cooldownTimer.Stop();
+                                        cooldownTimer = null;
+                                        Logger.Log("Cooldown expired — re-evaluating schedule for possible re-lock");
+                                        await EvaluateScheduleAndMaybeLock();
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.LogError("Error during cooldown re-eval", ex);
+                                    }
+                                };
+                                cooldownTimer.Start();
                             }
                             catch (Exception ex)
                             {
-                                Logger.LogError("Error during cooldown re-eval", ex);
+                                Logger.LogError("Failed to start cooldown timer", ex);
                             }
-                        };
-                        cooldownTimer.Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError("Failed to start cooldown timer", ex);
-                    }
 
-                    // Don't show MainWindow - keep it hidden for security
-                    // User can access it from system tray if needed
+                            // Don't show MainWindow - keep it hidden for security
+                            // User can access it from system tray if needed
+                        }
+                        finally
+                        {
+                            // Clear references to the active lock windows
+                            activeLockWindows.Clear();
+                            // Keep MainWindow hidden for security - user can access via system tray
+                            lockWindowsClosing = false;
+                        }
+                    };
+
+                    activeLockWindows.Add(lockWin);
                 }
-                finally
+
+                // Send status update to server
+                pcSocket?.SendStatusAsync("Locked").ConfigureAwait(false);
+
+                // Show all windows — each positions itself on its target screen via SetWindowPos in its Loaded event
+                foreach (var w in activeLockWindows)
                 {
-                    // Clear reference to the active lock window
-                    activeLockWindow = null;
+                    try { w.Show(); }
+                    catch (Exception ex) { Logger.LogError("Failed to show lock window", ex); }
                 }
-            };
-
-            activeLockWindow.Show();
-            this.Hide();
+                
+                try { this.Hide(); } catch { }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to activate lock windows on all screens", ex);
+            }
+            finally
+            {
+                lock (lockActivationLock)
+                {
+                    isActivatingLocks = false;
+                }
+            }
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
