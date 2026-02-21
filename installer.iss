@@ -23,6 +23,8 @@ Source: "bin\Release\net8.0-windows\win-x64\publish\PCLockScreen.exe"; DestDir: 
 Source: "bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{commonappdata}\Ghost"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall; Attribs: hidden system
 
+[Tasks]
+Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional icons:"; Flags: unchecked
 
 [Icons]
 ; Update the filename to PCLockScreen.exe
