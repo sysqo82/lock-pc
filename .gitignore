@@ -90,3 +90,4 @@ Desktop.ini
 .vscode/
 .installer-outputpublishwin-x64/
 *.pdb
+publish/\ninstaller-output/\nbin/\nobj/\n
