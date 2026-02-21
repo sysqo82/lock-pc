@@ -91,3 +91,4 @@ Desktop.ini
 .installer-outputpublishwin-x64/
 *.pdb
 publish/\ninstaller-output/\nbin/\nobj/\n
+/publish*

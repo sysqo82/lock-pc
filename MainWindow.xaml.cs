@@ -815,7 +815,7 @@ namespace PCLockScreen
         private void ShowAbout()
         {
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            var versionString = $"{version.Major}.{version.Minor}{(version.Build > 0 ? "." + version.Build : "")}";
+            var versionString = $"{version.Major}.{version.Minor}.{version.Build}";
             MessageBox.Show(
                 $"PC Lock Screen\nVersion {versionString}\n\nA time-based lock screen application with server integration.",
                 "About PC Lock Screen",

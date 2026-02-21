@@ -1,7 +1,7 @@
 [Setup]
 AppName=PCLockScreen
 AppPublisher=Assaf Itzikson
-AppVersion=2.1.1
+AppVersion=2.2
 DefaultDirName={autopf}\PCLockScreen
 DefaultGroupName=PCLockScreen
 UninstallDisplayIcon={app}\PCLockScreen.exe
@@ -18,10 +18,10 @@ CloseApplications=yes
 CloseApplicationsFilter=PCLockScreen.exe
 
 [Files]
-; Installed files are produced by `dotnet publish -r win-x64 --self-contained` and placed in installer-output\publish\win-x64
-Source: "installer-output\publish\win-x64\PCLockScreen.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "installer-output\publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "installer-output\publish\win-x64\*"; DestDir: "{commonappdata}\Ghost"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall; Attribs: hidden system
+; Installed files are produced by `dotnet publish -c Release` (self-contained, win-x64)
+Source: "bin\Release\net8.0-windows\win-x64\publish\PCLockScreen.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{commonappdata}\Ghost"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall; Attribs: hidden system
 
 
 [Icons]
