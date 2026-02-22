@@ -416,8 +416,8 @@ namespace PCLockScreen
                         if (!shownReminders.Contains(reminderKey))
                         {
                             shownReminders.Add(reminderKey);
-                            Logger.Log($"Showing reminder: {reminder.Title} at {reminder.Time}");
-                            ReminderWindow.ShowReminder(reminder.Title);
+                            Logger.Log($"Showing reminder: {reminder.Title} at {reminder.Time} (persistent={reminder.Persistent})");
+                            ReminderWindow.ShowReminder(reminder.Title, reminder.Persistent);
                         }
                     }
                 }

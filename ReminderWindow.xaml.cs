@@ -13,7 +13,7 @@ namespace PCLockScreen
     {
         private DispatcherTimer autoDismissTimer;
 
-        public ReminderWindow(string message)
+        public ReminderWindow(string message, bool persistent = false)
         {
             InitializeComponent();
             ReminderMessage.Text = message ?? "Reminder";
@@ -28,15 +28,18 @@ namespace PCLockScreen
                 Logger.LogError("Failed to play notification sound", ex);
             }
             
-            // Auto-dismiss after 30 seconds
-            autoDismissTimer = new DispatcherTimer();
-            autoDismissTimer.Interval = TimeSpan.FromSeconds(30);
-            autoDismissTimer.Tick += (s, e) =>
+            // Auto-dismiss after 30 seconds unless persistent
+            if (!persistent)
             {
-                autoDismissTimer.Stop();
-                Close();
-            };
-            autoDismissTimer.Start();
+                autoDismissTimer = new DispatcherTimer();
+                autoDismissTimer.Interval = TimeSpan.FromSeconds(30);
+                autoDismissTimer.Tick += (s, e) =>
+                {
+                    autoDismissTimer.Stop();
+                    Close();
+                };
+                autoDismissTimer.Start();
+            }
         }
 
         private void Dismiss_Click(object sender, RoutedEventArgs e)
@@ -60,13 +63,13 @@ namespace PCLockScreen
         /// <summary>
         /// Show the reminder window on the UI thread
         /// </summary>
-        public static void ShowReminder(string message)
+        public static void ShowReminder(string message, bool persistent = false)
         {
             try
             {
                 Application.Current?.Dispatcher.Invoke(() =>
                 {
-                    var window = new ReminderWindow(message);
+                    var window = new ReminderWindow(message, persistent);
                     window.Show();
                     window.Activate();
                 });
