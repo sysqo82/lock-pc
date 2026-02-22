@@ -7,7 +7,7 @@
         WindowStartupLocation="CenterScreen"
         Topmost="True"
         ShowInTaskbar="True"
-        Background="#EEF0F2F5"
+        Background="Transparent"
         Width="450"
         Height="250"
         AllowsTransparency="True">
@@ -56,7 +56,7 @@
             
             <!-- Reminder Message -->
             <Border Grid.Row="1" 
-                    Background="#F8F9FA" 
+                    Background="#dadfe4" 
                     CornerRadius="8" 
                     Padding="20"
                     Margin="0,0,0,20">

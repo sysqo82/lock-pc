@@ -223,6 +223,7 @@ namespace PCLockScreen
             public string Title { get; set; }
             public string Time { get; set; }
             public List<string> Days { get; set; }
+            public bool Persistent { get; set; }
         }
 
         public class Reminder
@@ -231,6 +232,7 @@ namespace PCLockScreen
             public string Title { get; set; }
             public string Time { get; set; }
             public List<DayOfWeek> Days { get; set; }
+            public bool Persistent { get; set; }
         }
 
         /// <summary>
@@ -413,7 +415,8 @@ namespace PCLockScreen
                     Id = sr.Id,
                     Title = sr.Title,
                     Time = sr.Time ?? "12:00",
-                    Days = new List<DayOfWeek>()
+                    Days = new List<DayOfWeek>(),
+                    Persistent = sr.Persistent
                 };
 
                 if (sr.Days != null)
