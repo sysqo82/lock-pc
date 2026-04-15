@@ -91,10 +91,14 @@ namespace PCLockScreen
         /// Get the lock schedule from the server as raw JSON.
         /// Expected path is /api/block-period and should return a JSON array
         /// of time block definitions.
+        /// Throws <see cref="UnauthorizedAccessException"/> when the server returns 401,
+        /// allowing callers to detect a stale/expired session.
         /// </summary>
         public async Task<string> GetBlockPeriodsJsonAsync()
         {
             var response = await _client.GetAsync("/api/block-period").ConfigureAwait(false);
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                throw new UnauthorizedAccessException("Server session expired or invalid.");
             return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         }
 
@@ -102,10 +106,14 @@ namespace PCLockScreen
         /// Get the reminders from the server as raw JSON.
         /// Expected path is /api/reminder and should return a JSON array
         /// of reminder definitions.
+        /// Throws <see cref="UnauthorizedAccessException"/> when the server returns 401,
+        /// allowing callers to detect a stale/expired session.
         /// </summary>
         public async Task<string> GetRemindersJsonAsync()
         {
             var response = await _client.GetAsync("/api/reminder").ConfigureAwait(false);
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                throw new UnauthorizedAccessException("Server session expired or invalid.");
             return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         }
 

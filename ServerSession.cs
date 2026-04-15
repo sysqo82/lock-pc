@@ -247,6 +247,14 @@ namespace PCLockScreen
                 var client = GetClient();
                 json = await client.GetBlockPeriodsJsonAsync().ConfigureAwait(false);
             }
+            catch (UnauthorizedAccessException)
+            {
+                // Server session was wiped (e.g. container restart). Clear the
+                // stale in-memory session so EnsureLoggedInAsync re-authenticates
+                // on the next call instead of assuming the session is still valid.
+                InvalidateSession();
+                return new List<TimeBlock>();
+            }
             catch
             {
                 return new List<TimeBlock>();
@@ -380,6 +388,12 @@ namespace PCLockScreen
                 var client = GetClient();
                 json = await client.GetRemindersJsonAsync().ConfigureAwait(false);
             }
+            catch (UnauthorizedAccessException)
+            {
+                // Server session was wiped (e.g. container restart).
+                InvalidateSession();
+                return new List<Reminder>();
+            }
             catch
             {
                 return new List<Reminder>();
@@ -470,6 +484,22 @@ namespace PCLockScreen
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Clears the in-memory session state so the next call to
+        /// <see cref="EnsureLoggedInAsync"/> will perform a fresh login.
+        /// Called automatically when the server returns 401 (e.g. after a
+        /// container restart that wipes the in-memory session store).
+        /// </summary>
+        private static void InvalidateSession()
+        {
+            _currentEmail = null;
+            if (_client != null)
+            {
+                try { _client.Dispose(); } catch { }
+                _client = null;
+            }
         }
 
         public static void Logout()
