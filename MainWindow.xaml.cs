@@ -83,6 +83,10 @@ namespace PCLockScreen
         private ProcessProtection processProtection;
         private bool freezeMode = false;
         private ToolStripMenuItem resumeMenuItem;
+        private ToolStripMenuItem trayShowItem;
+        private ToolStripMenuItem trayScheduleItem;
+        private ToolStripMenuItem trayAboutItem;
+        private ToolStripMenuItem trayExitItem;
         private PcSocket pcSocket;
         private ScheduleWindow scheduleWindow;
         private List<ServerSession.Reminder> cachedReminders = new List<ServerSession.Reminder>();
@@ -746,29 +750,29 @@ namespace PCLockScreen
 
             // Create context menu
             var contextMenu = new ContextMenuStrip();
-            var showItem = new ToolStripMenuItem("Show Configuration");
-            showItem.Click += (s, e) => ShowWindowWithPassword();
+            trayShowItem = new ToolStripMenuItem(Loc.Instance.Strings.Tray_ShowConfig);
+            trayShowItem.Click += (s, e) => ShowWindowWithPassword();
             
-            var scheduleItem = new ToolStripMenuItem("Show Schedule");
-            scheduleItem.Click += (s, e) => ShowSchedule();
+            trayScheduleItem = new ToolStripMenuItem(Loc.Instance.Strings.Tray_ShowSchedule);
+            trayScheduleItem.Click += (s, e) => ShowSchedule();
             
             // Resume menu item - only visible in freeze mode
-            resumeMenuItem = new ToolStripMenuItem("Resume Monitoring");
+            resumeMenuItem = new ToolStripMenuItem(Loc.Instance.Strings.Tray_ResumeMonitoring);
             resumeMenuItem.Click += (s, e) => ResumeMonitoring();
             resumeMenuItem.Visible = false;
             
-            var aboutItem = new ToolStripMenuItem("About");
-            aboutItem.Click += (s, e) => ShowAbout();
+            trayAboutItem = new ToolStripMenuItem(Loc.Instance.Strings.Tray_About);
+            trayAboutItem.Click += (s, e) => ShowAbout();
             
-            var exitItem = new ToolStripMenuItem("Exit");
-            exitItem.Click += (s, e) => ExitWithPassword();
+            trayExitItem = new ToolStripMenuItem(Loc.Instance.Strings.Tray_Exit);
+            trayExitItem.Click += (s, e) => ExitWithPassword();
 
-            contextMenu.Items.Add(showItem);
-            contextMenu.Items.Add(scheduleItem);
+            contextMenu.Items.Add(trayShowItem);
+            contextMenu.Items.Add(trayScheduleItem);
             contextMenu.Items.Add(resumeMenuItem);
             contextMenu.Items.Add(new ToolStripSeparator());
-            contextMenu.Items.Add(aboutItem);
-            contextMenu.Items.Add(exitItem);
+            contextMenu.Items.Add(trayAboutItem);
+            contextMenu.Items.Add(trayExitItem);
             notifyIcon.ContextMenuStrip = contextMenu;
 
             // Double-click to restore
@@ -1026,6 +1030,15 @@ namespace PCLockScreen
         {
             var config = configManager.LoadConfig();
             RunAtStartup.IsChecked = config.RunAtStartup;
+
+            // Set language combobox to match persisted language (suppress the SelectionChanged handler)
+            _suppressLangChange = true;
+            var lang = string.IsNullOrWhiteSpace(config.Language) ? "en" : config.Language;
+            foreach (System.Windows.Controls.ComboBoxItem item in LanguageCombo.Items)
+            {
+                if ((string)item.Tag == lang) { LanguageCombo.SelectedItem = item; break; }
+            }
+            _suppressLangChange = false;
             
             // Time blocks themselves are now managed by the server; we keep
             // the local collection only for potential read-only display.
@@ -1049,10 +1062,33 @@ namespace PCLockScreen
             }
         }
 
+        private bool _suppressLangChange = false;
+
+        private void LanguageCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_suppressLangChange) return;
+            var item = LanguageCombo.SelectedItem as System.Windows.Controls.ComboBoxItem;
+            if (item == null) return;
+            var lang = (string)item.Tag;
+            Loc.Instance.SetLanguage(lang);
+            var config = configManager.LoadConfig();
+            config.Language = lang;
+            configManager.SaveConfig(config);
+            // Refresh code-behind driven text immediately
+            UpdateStatus();
+            AccountStatusText.Text = string.Empty;
+            // Update tray context menu labels
+            if (trayShowItem != null)     trayShowItem.Text     = Loc.Instance.Strings.Tray_ShowConfig;
+            if (trayScheduleItem != null) trayScheduleItem.Text = Loc.Instance.Strings.Tray_ShowSchedule;
+            if (resumeMenuItem != null)   resumeMenuItem.Text   = Loc.Instance.Strings.Tray_ResumeMonitoring;
+            if (trayAboutItem != null)    trayAboutItem.Text    = Loc.Instance.Strings.Tray_About;
+            if (trayExitItem != null)     trayExitItem.Text     = Loc.Instance.Strings.Tray_Exit;
+        }
+
         private void RunAtStartup_Changed(object sender, RoutedEventArgs e)
         {
             bool shouldRunAtStartup = RunAtStartup.IsChecked == true;
-            
+
             try
             {
                 if (shouldRunAtStartup)
@@ -1090,11 +1126,11 @@ namespace PCLockScreen
 
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             {
-                AccountStatusText.Text = "Please enter both email and password.";
+                AccountStatusText.Text = Loc.Instance.Strings.Acct_EnterBothFields;
                 return;
             }
 
-            AccountStatusText.Text = "Logging in...";
+            AccountStatusText.Text = Loc.Instance.Strings.Acct_LoggingIn;
 
             try
             {
@@ -1102,7 +1138,7 @@ namespace PCLockScreen
                 bool serverUp = await ServerSession.PingServerAsync();
                 if (!serverUp)
                 {
-                    AccountStatusText.Text = "Cannot reach server — check tunnel or network.";
+                    AccountStatusText.Text = Loc.Instance.Strings.Acct_CannotReachServer;
                     return;
                 }
                 bool ok = await ServerSession.LoginAsync(email, password);
@@ -1120,11 +1156,11 @@ namespace PCLockScreen
 
                     if (scheduleOk)
                     {
-                        AccountStatusText.Text = "Logged in and schedule synced from server.";
+                        AccountStatusText.Text = Loc.Instance.Strings.Acct_LoggedInSynced;
                     }
                     else
                     {
-                        AccountStatusText.Text = "Logged in, but failed to load schedule from server.";
+                        AccountStatusText.Text = Loc.Instance.Strings.Acct_LoggedInSyncFailed;
                     }
 
                     UpdateAccountUI();
@@ -1133,12 +1169,12 @@ namespace PCLockScreen
                 }
                 else
                 {
-                    AccountStatusText.Text = "Login failed. Check your email and password.";
+                    AccountStatusText.Text = Loc.Instance.Strings.Acct_LoginFailed;
                 }
             }
             catch (Exception ex)
             {
-                AccountStatusText.Text = $"Login error: {ex.Message}";
+                AccountStatusText.Text = string.Format(Loc.Instance.Strings.Acct_LoginError, ex.Message);
             }
         }
 
@@ -1149,11 +1185,11 @@ namespace PCLockScreen
 
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             {
-                AccountStatusText.Text = "Please enter both email and password.";
+                AccountStatusText.Text = Loc.Instance.Strings.Acct_EnterBothFields;
                 return;
             }
 
-            AccountStatusText.Text = "Registering account...";
+            AccountStatusText.Text = Loc.Instance.Strings.Acct_Registering;
 
             try
             {
@@ -1171,11 +1207,11 @@ namespace PCLockScreen
 
                     if (scheduleOk)
                     {
-                        AccountStatusText.Text = "Account created, logged in, and schedule synced from server.";
+                        AccountStatusText.Text = Loc.Instance.Strings.Acct_RegisteredSynced;
                     }
                     else
                     {
-                        AccountStatusText.Text = "Account created and logged in, but failed to load schedule from server.";
+                        AccountStatusText.Text = Loc.Instance.Strings.Acct_RegisteredSyncFailed;
                     }
 
                     UpdateAccountUI();
@@ -1184,12 +1220,12 @@ namespace PCLockScreen
                 }
                 else
                 {
-                    AccountStatusText.Text = "Registration or login failed. The email may already be in use or credentials are invalid.";
+                    AccountStatusText.Text = Loc.Instance.Strings.Acct_RegisterFailed;
                 }
             }
             catch (Exception ex)
             {
-                AccountStatusText.Text = $"Registration error: {ex.Message}";
+                AccountStatusText.Text = string.Format(Loc.Instance.Strings.Acct_RegisterError, ex.Message);
             }
         }
 
@@ -1217,15 +1253,8 @@ namespace PCLockScreen
                     return false;
                 }
 
-                // If server returned zero blocks, do not overwrite the local schedule
-                // to avoid losing the last-known schedule due to transient server issues.
-                if (blocks.Count == 0)
-                {
-                    Logger.Log("SyncScheduleFromServer: fetched 0 blocks; preserving existing local schedule");
-                    return true;
-                }
-
-                // Normal case: update local schedule
+                // Always apply server result (including empty list = all blocks deleted).
+                // Null already handled above; 0 is a valid "no restrictions" state.
                 config.TimeBlocks = blocks;
                 config.TimeRestrictionEnabled = blocks.Count > 0;
                 configManager.SaveConfig(config);
@@ -1269,11 +1298,11 @@ namespace PCLockScreen
 
         private async void RefreshSchedule_Click(object sender, RoutedEventArgs e)
         {
-            AccountStatusText.Text = "Refreshing schedule from server...";
+            AccountStatusText.Text = Loc.Instance.Strings.Acct_RefreshingSchedule;
             bool authOk = await ServerSession.EnsureLoggedInAsync(configManager);
             if (!authOk)
             {
-                AccountStatusText.Text = "Could not authenticate with server; showing last known schedule.";
+                AccountStatusText.Text = Loc.Instance.Strings.Acct_AuthFailed;
                 return;
             }
 
@@ -1281,8 +1310,8 @@ namespace PCLockScreen
             LoadConfiguration();
             UpdateStatus();
             AccountStatusText.Text = ok
-                ? "Schedule refreshed from server."
-                : "Failed to refresh schedule from server.";
+                ? Loc.Instance.Strings.Acct_ScheduleRefreshed
+                : Loc.Instance.Strings.Acct_ScheduleRefreshFailed;
         }
 
         private void Logout_Click(object sender, RoutedEventArgs e)
@@ -1293,7 +1322,7 @@ namespace PCLockScreen
 
             EmailTextBox.Text = string.Empty;
             AccountPasswordBox.Password = string.Empty;
-            AccountStatusText.Text = "Logged out.";
+            AccountStatusText.Text = Loc.Instance.Strings.Acct_LoggedOut;
 
             UpdateAccountUI();
             UpdateStatus();
@@ -1552,8 +1581,8 @@ namespace PCLockScreen
             // If no account is configured, hide schedule details.
             if (string.IsNullOrWhiteSpace(config.AccountEmail))
             {
-                StatusText.Text = "Not connected to server";
-                TimeStatusText.Text = "Log in to your account to load the lock schedule.";
+                StatusText.Text = Loc.Instance.Strings.Status_NotConnected;
+                TimeStatusText.Text = Loc.Instance.Strings.Status_LoginToLoad;
                 return;
             }
             
@@ -1561,12 +1590,12 @@ namespace PCLockScreen
             {
                 if (config.TimeBlocks.Count == 0)
                 {
-                    StatusText.Text = "Time Restrictions Enabled";
-                    TimeStatusText.Text = "No blocks configured - PC is unrestricted";
+                    StatusText.Text = Loc.Instance.Strings.Status_TimeRestrictionsEnabled;
+                    TimeStatusText.Text = Loc.Instance.Strings.Status_NoBlocksConfigured;
                 }
                 else
                 {
-                    StatusText.Text = "Time Restrictions Enabled";
+                    StatusText.Text = Loc.Instance.Strings.Status_TimeRestrictionsEnabled;
                     
                     var blockDescriptions = new List<string>();
                     foreach (var block in config.TimeBlocks)
@@ -1580,26 +1609,27 @@ namespace PCLockScreen
             }
             else
             {
-                StatusText.Text = "No Time Restrictions";
-                TimeStatusText.Text = "PC can be used at any time";
+                StatusText.Text = Loc.Instance.Strings.Status_NoTimeRestrictions;
+                TimeStatusText.Text = Loc.Instance.Strings.Status_NoRestrictions;
             }
         }
         
         private string GetDaysDescription(List<DayOfWeek> days)
         {
+            var s = Loc.Instance.Strings;
             if (days.Count == 7)
-                return "Every day";
+                return s.Days_EveryDay;
             
             var weekdays = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday };
             var weekends = new[] { DayOfWeek.Saturday, DayOfWeek.Sunday };
             
             if (days.Count == 5 && weekdays.All(d => days.Contains(d)))
-                return "Weekdays";
+                return s.Days_Weekdays;
             
             if (days.Count == 2 && weekends.All(d => days.Contains(d)))
-                return "Weekends";
+                return s.Days_Weekends;
             
-            var dayNames = days.Select(d => d.ToString().Substring(0, 3)).ToList();
+            var dayNames = days.Select(d => Loc.Instance.Strings.GetDayName(d)).ToList();
             return string.Join(", ", dayNames);
         }
     }

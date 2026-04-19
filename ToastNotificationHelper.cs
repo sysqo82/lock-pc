@@ -31,8 +31,8 @@ namespace PCLockScreen
         public static void ShowWarningToast(int minutesRemaining)
         {
             ShowNotificationWindow(
-                "⚠️ PC Lock Warning",
-                $"Your PC will be locked in {minutesRemaining} minutes.\n\nPlease save your work and wrap up.",
+                Loc.Instance.Strings.Notification_WarnTitle,
+                string.Format(Loc.Instance.Strings.Notification_WarnMsg, minutesRemaining),
                 20,
                 false
             );
@@ -51,8 +51,8 @@ namespace PCLockScreen
         public static void ShowUrgentToast()
         {
             ShowNotificationWindow(
-                "⚠️ PC Lock Imminent",
-                "Your PC will be locked in 1 minute.\n\nPlease save your work now.",
+                Loc.Instance.Strings.Notification_UrgentTitle,
+                Loc.Instance.Strings.Notification_UrgentMsg,
                 30,
                 true
             );

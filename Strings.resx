@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+
+  <!-- App / Common -->
+  <data name="AppAlreadyRunning"><value>PC Lock Screen is already running.</value></data>
+  <data name="AppAlreadyRunningTitle"><value>Already Running</value></data>
+
+  <!-- MainWindow -->
+  <data name="Main_Title"><value>PC Lock Screen Configuration</value></data>
+  <data name="Main_Account"><value>Account</value></data>
+  <data name="Main_Email"><value>Email:</value></data>
+  <data name="Main_Password"><value>Password:</value></data>
+  <data name="Main_Login"><value>Login</value></data>
+  <data name="Main_Register"><value>Register</value></data>
+  <data name="Main_LoggedInAs"><value>Logged in as </value></data>
+  <data name="Main_RefreshSchedule"><value>Refresh Schedule</value></data>
+  <data name="Main_Logout"><value>Logout</value></data>
+  <data name="Main_AppSettings"><value>App Settings</value></data>
+  <data name="Main_RunAtStartup"><value>Run at Windows Startup</value></data>
+  <data name="Main_RunAtStartupHint"><value>Automatically start this app when Windows starts</value></data>
+  <data name="Main_ScheduleNote"><value>Lock schedule is fully managed from the server.</value></data>
+  <data name="Main_ScheduleNoteHint"><value>View/manage the schedule from the web dashboard; this app only enforces it.</value></data>
+  <data name="Main_Status"><value>Status</value></data>
+  <data name="Main_NotActive"><value>Not Active</value></data>
+  <data name="Main_ActivateLock"><value>Activate Lock</value></data>
+  <data name="Main_Exit"><value>Exit</value></data>
+
+  <!-- LockScreen -->
+  <data name="Lock_Title"><value>PC is Locked</value></data>
+  <data name="Lock_StatusMessage"><value>This PC is currently locked.</value></data>
+  <data name="Lock_TodaysReminders"><value>Today's Reminders</value></data>
+  <data name="Lock_AdminUnlock"><value>Admin Unlock</value></data>
+  <data name="Lock_EnterPassword"><value>Enter admin password to unlock:</value></data>
+  <data name="Lock_Unlock"><value>Unlock</value></data>
+
+  <!-- ReminderWindow -->
+  <data name="Reminder_Title"><value>Reminder</value></data>
+  <data name="Reminder_Dismiss"><value>Dismiss</value></data>
+
+  <!-- NotificationWindow -->
+  <data name="Notification_Title"><value>⚠️ PC Lock Warning</value></data>
+  <data name="Notification_Message"><value>Your PC will be locked soon.</value></data>
+  <data name="Notification_Dismiss"><value>Dismiss</value></data>
+
+  <!-- PasswordDialog -->
+  <data name="PassDlg_Title"><value>Account Authentication Required</value></data>
+  <data name="PassDlg_EnterPassword"><value>Enter account password:</value></data>
+  <data name="PassDlg_OK"><value>OK</value></data>
+  <data name="PassDlg_Cancel"><value>Cancel</value></data>
+</root>

@@ -1,7 +1,7 @@
 [Setup]
 AppName=PCLockScreen
 AppPublisher=Assaf Itzikson
-AppVersion=2.3.0
+AppVersion=3.0.0
 DefaultDirName={autopf}\PCLockScreen
 DefaultGroupName=PCLockScreen
 UninstallDisplayIcon={app}\PCLockScreen.exe
