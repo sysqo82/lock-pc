@@ -1,10 +1,11 @@
 [Setup]
 AppName=PCLockScreen
 AppPublisher=Assaf Itzikson
-AppVersion=2.2.2
+AppVersion=2.3.0
 DefaultDirName={autopf}\PCLockScreen
 DefaultGroupName=PCLockScreen
 UninstallDisplayIcon={app}\PCLockScreen.exe
+SetupIconFile=app.ico
 Compression=lzma2
 SolidCompression=yes
 OutputDir=.\installer-output
@@ -29,7 +30,7 @@ Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "A
 [Icons]
 ; Update the filename to PCLockScreen.exe
 Name: "{group}\PCLockScreen"; Filename: "{app}\PCLockScreen.exe"
-Name: "{commondesktop}\PCLockScreen"; Filename: "{app}\PCLockScreen.exe"
+Name: "{commondesktop}\PCLockScreen"; Filename: "{app}\PCLockScreen.exe"; Tasks: desktopicon
 
 [Run]
 ; Offer to run the app after install (set to no to avoid auto-run)

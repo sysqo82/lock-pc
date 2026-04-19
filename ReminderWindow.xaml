@@ -4,12 +4,13 @@
         Title="Reminder" 
         WindowStyle="None"
         ResizeMode="NoResize"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="Manual"
         Topmost="True"
         ShowInTaskbar="True"
         Background="Transparent"
         Width="450"
-        Height="250"
+        MaxHeight="600"
+        SizeToContent="Height"
         AllowsTransparency="True">
     
     <Window.Resources>
@@ -35,7 +36,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
