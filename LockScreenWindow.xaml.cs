@@ -166,7 +166,7 @@ namespace PCLockScreen
                         }
                     }
                     
-                    StatusMessage.Text = $"PC will unlock at {unlockTime:HH:mm}";
+                    StatusMessage.Text = string.Format(Loc.Instance.Strings.Lock_WillUnlockAt, $"{unlockTime:HH:mm}");
 
                     // Show countdown in hours:minutes:seconds
                     try
@@ -176,7 +176,7 @@ namespace PCLockScreen
                             remaining = TimeSpan.Zero;
 
                         string remStr = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)remaining.TotalHours, remaining.Minutes, remaining.Seconds);
-                        UnlockCountdownDisplay.Text = $"Unlocks in {remStr}";
+                        UnlockCountdownDisplay.Text = string.Format(Loc.Instance.Strings.Lock_UnlocksIn, remStr);
                         UnlockCountdownDisplay.Visibility = Visibility.Visible;
                     }
                     catch
@@ -187,14 +187,14 @@ namespace PCLockScreen
                 }
                 else
                 {
-                    StatusMessage.Text = "This PC is currently locked. Enter admin password to unlock.";
+                    StatusMessage.Text = Loc.Instance.Strings.Lock_LockedEnterPassword;
                     UnlockCountdownDisplay.Text = string.Empty;
                     UnlockCountdownDisplay.Visibility = Visibility.Collapsed;
                 }
             }
             else
             {
-                StatusMessage.Text = "This PC is currently locked. Enter admin password to unlock.";
+                StatusMessage.Text = Loc.Instance.Strings.Lock_LockedEnterPassword;
                 UnlockCountdownDisplay.Text = string.Empty;
                 UnlockCountdownDisplay.Visibility = Visibility.Collapsed;
             }

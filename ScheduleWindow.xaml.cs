@@ -28,13 +28,13 @@ namespace PCLockScreen
             // If no account is configured, don't show any schedule details.
             if (string.IsNullOrWhiteSpace(config.AccountEmail))
             {
-                StatusText.Text = "Please log in from the main window to view the lock schedule.";
+                StatusText.Text = Loc.Instance.Strings.Sched_PleaseLogin;
                 return;
             }
             
             if (!config.TimeRestrictionEnabled)
             {
-                StatusText.Text = "Time restrictions are currently disabled.";
+                StatusText.Text = Loc.Instance.Strings.Sched_Disabled;
                 
                 var noRestrictionBorder = new Border
                 {
@@ -48,7 +48,7 @@ namespace PCLockScreen
                 
                 var messageText = new TextBlock
                 {
-                    Text = "✓ PC can be used at any time - no restrictions configured",
+                    Text = "✓ " + Loc.Instance.Strings.Status_NoRestrictions,
                     FontSize = 16,
                     Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2E7D32")),
                     TextWrapping = TextWrapping.Wrap
@@ -61,7 +61,7 @@ namespace PCLockScreen
             
             if (config.TimeBlocks.Count == 0)
             {
-                StatusText.Text = "Time restrictions enabled but no blocks configured.";
+                StatusText.Text = Loc.Instance.Strings.Sched_NoBlocks;
                 
                 var noBlocksBorder = new Border
                 {
@@ -86,7 +86,7 @@ namespace PCLockScreen
                 return;
             }
             
-            StatusText.Text = $"Time restrictions are enabled with {config.TimeBlocks.Count} block(s) configured.";
+            StatusText.Text = string.Format(Loc.Instance.Strings.Sched_EnabledCount, config.TimeBlocks.Count);
             
             // Display each time block
             for (int i = 0; i < config.TimeBlocks.Count; i++)
@@ -99,7 +99,7 @@ namespace PCLockScreen
                 // Block title
                 var titleText = new TextBlock
                 {
-                    Text = $"Lock Period #{i + 1}",
+                    Text = string.Format(Loc.Instance.Strings.Sched_LockPeriod, i + 1),
                     FontSize = 18,
                     FontWeight = FontWeights.Bold,
                     Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D32F2F")),
@@ -110,7 +110,7 @@ namespace PCLockScreen
                 // Time range
                 var timeText = new TextBlock
                 {
-                    Text = $"🕒 Time: {block.StartTime} - {block.EndTime}",
+                    Text = string.Format(Loc.Instance.Strings.Sched_Time, block.StartTime, block.EndTime),
                     FontSize = 16,
                     Margin = new Thickness(0, 0, 0, 5)
                 };
@@ -119,7 +119,7 @@ namespace PCLockScreen
                 // Days
                 var daysText = new TextBlock
                 {
-                    Text = $"📅 Days: {GetDaysDescription(block.Days)}",
+                    Text = string.Format(Loc.Instance.Strings.Sched_Days, GetDaysDescription(block.Days)),
                     FontSize = 16,
                     Margin = new Thickness(0, 0, 0, 5)
                 };
@@ -130,7 +130,7 @@ namespace PCLockScreen
                 {
                     var activeText = new TextBlock
                     {
-                        Text = "🔴 CURRENTLY ACTIVE - PC is locked",
+                        Text = Loc.Instance.Strings.Sched_Active,
                         FontSize = 14,
                         FontWeight = FontWeights.Bold,
                         Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D32F2F")),
@@ -163,7 +163,7 @@ namespace PCLockScreen
                     {
                         var upcomingText = new TextBlock
                         {
-                            Text = $"⏳ Upcoming in {FormatTimeSpan(timeUntil.Value)}",
+                            Text = string.Format(Loc.Instance.Strings.Sched_Upcoming, FormatTimeSpan(timeUntil.Value)),
                             FontSize = 14,
                             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F57C00")),
                             Margin = new Thickness(0, 10, 0, 0)
@@ -264,19 +264,20 @@ namespace PCLockScreen
         
         private string GetDaysDescription(List<DayOfWeek> days)
         {
+            var s = Loc.Instance.Strings;
             if (days.Count == 7)
-                return "Every day";
+                return s.Days_EveryDay;
             
             var weekdays = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday };
             var weekends = new[] { DayOfWeek.Saturday, DayOfWeek.Sunday };
             
             if (days.Count == 5 && weekdays.All(d => days.Contains(d)))
-                return "Weekdays (Mon-Fri)";
+                return s.Days_Weekdays;
             
             if (days.Count == 2 && weekends.All(d => days.Contains(d)))
-                return "Weekends (Sat-Sun)";
+                return s.Days_Weekends;
             
-            var dayNames = days.Select(d => d.ToString().Substring(0, 3)).ToList();
+            var dayNames = days.Select(d => Loc.Instance.Strings.GetDayName(d)).ToList();
             return string.Join(", ", dayNames);
         }
 
@@ -286,7 +287,7 @@ namespace PCLockScreen
             var config = configManager.LoadConfig();
             if (string.IsNullOrWhiteSpace(config.AccountEmail))
             {
-                StatusText.Text = "Please log in from the main window before refreshing the schedule.";
+                StatusText.Text = Loc.Instance.Strings.Sched_PleaseLoginRefresh;
                 return;
             }
 
@@ -294,19 +295,19 @@ namespace PCLockScreen
             bool authOk = await ServerSession.EnsureLoggedInAsync(configManager);
             if (!authOk)
             {
-                StatusText.Text = "Could not authenticate with server; showing last known schedule.";
+                StatusText.Text = Loc.Instance.Strings.Sched_AuthFailed;
                 LoadSchedule();
                 return;
             }
 
-            StatusText.Text = "Refreshing schedule from server...";
+            StatusText.Text = Loc.Instance.Strings.Sched_Refreshing;
 
             bool ok = await SyncScheduleFromServer();
             LoadSchedule();
 
             if (ok)
             {
-                StatusText.Text = "Time restrictions are enabled with the latest schedule from the server.";
+                StatusText.Text = Loc.Instance.Strings.Sched_EnabledLatest;
             }
             else
             {

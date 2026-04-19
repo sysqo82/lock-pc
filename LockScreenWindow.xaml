@@ -1,7 +1,9 @@
 <Window x:Class="PCLockScreen.LockScreenWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PC Locked" 
+        xmlns:local="clr-namespace:PCLockScreen"
+        Title="PC Locked"
+        FlowDirection="{Binding Source={x:Static local:Loc.Instance}, Path=FlowDirection}"
         WindowStyle="None"
         ResizeMode="NoResize"
         WindowStartupLocation="Manual"
@@ -25,7 +27,7 @@
     
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="Auto" MinWidth="260"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -35,7 +37,7 @@
                 Padding="20"
                 Margin="20">
             <StackPanel>
-                <TextBlock Text="Today's Reminders" 
+                <TextBlock Text="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Lock_TodaysReminders}" 
                            FontSize="20" 
                            FontWeight="Bold" 
                            Foreground="White"
@@ -81,15 +83,15 @@
             </Viewbox>
             
             <!-- Title -->
-            <TextBlock Text="PC is Locked" 
+            <TextBlock Text="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Lock_Title}" 
                        FontSize="32" 
                        FontWeight="Bold" 
                        TextAlignment="Center"
                        Margin="0,0,0,20"/>
             
             <!-- Status Message -->
-            <TextBlock x:Name="StatusMessage" 
-                       Text="This PC is currently locked."
+            <TextBlock x:Name="StatusMessage"
+                       Text="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Lock_StatusMessage}"
                        TextAlignment="Center"
                        FontSize="18"
                        Margin="0,0,0,30"/>
@@ -114,17 +116,17 @@
                     CornerRadius="5" 
                     Padding="20">
                 <StackPanel>
-                    <TextBlock Text="Admin Unlock" 
+                    <TextBlock Text="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Lock_AdminUnlock}" 
                                FontSize="18" 
                                FontWeight="Bold"
                                Margin="0,0,0,15"/>
                     
-                    <TextBlock Text="Enter admin password to unlock:"/>
+                    <TextBlock Text="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Lock_EnterPassword}"/>
                     <PasswordBox x:Name="AdminPasswordInput" 
                                  Margin="0,10,0,15"
                                  KeyDown="PasswordBox_KeyDown"/>
                     
-                    <Button Content="Unlock" 
+                    <Button Content="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Lock_Unlock}" 
                             Click="Unlock_Click"
                             HorizontalAlignment="Stretch"/>
                     

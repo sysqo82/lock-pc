@@ -33,6 +33,8 @@ namespace PCLockScreen
         public string PcName { get; set; } = string.Empty;
         public string AccountEmail { get; set; } = string.Empty;
         public string EncryptedAccountPassword { get; set; } = string.Empty;
+        /// <summary>UI language code, e.g. "en" or "he". Defaults to "en".</summary>
+        public string Language { get; set; } = "en";
     }
 
     public class ConfigManager

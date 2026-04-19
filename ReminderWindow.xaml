@@ -1,7 +1,9 @@
 <Window x:Class="PCLockScreen.ReminderWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Reminder" 
+        xmlns:local="clr-namespace:PCLockScreen"
+        Title="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Reminder_Title}"
+        FlowDirection="{Binding Source={x:Static local:Loc.Instance}, Path=FlowDirection}" 
         WindowStyle="None"
         ResizeMode="NoResize"
         WindowStartupLocation="Manual"
@@ -49,7 +51,7 @@
                     </Canvas>
                 </Viewbox>
                 
-                <TextBlock Text="Reminder" 
+                <TextBlock Text="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Reminder_Title}" 
                            FontSize="24" 
                            FontWeight="Bold" 
                            VerticalAlignment="Center"/>
@@ -72,8 +74,8 @@
             </Border>
             
             <!-- Dismiss Button -->
-            <Button Grid.Row="2" 
-                    Content="Dismiss" 
+            <Button Grid.Row="2"
+                    Content="{Binding Source={x:Static local:Loc.Instance}, Path=Strings.Reminder_Dismiss}"
                     Click="Dismiss_Click"
                     HorizontalAlignment="Center"
                     Width="150"/>

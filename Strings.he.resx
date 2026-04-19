@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+
+  <!-- App / Common -->
+  <data name="AppAlreadyRunning"><value>תוכנת נעילת המחשב כבר פועלת.</value></data>
+  <data name="AppAlreadyRunningTitle"><value>כבר פועל</value></data>
+
+  <!-- MainWindow -->
+  <data name="Main_Title"><value>הגדרות נעילת מחשב</value></data>
+  <data name="Main_Account"><value>חשבון</value></data>
+  <data name="Main_Email"><value>אימייל:</value></data>
+  <data name="Main_Password"><value>סיסמה:</value></data>
+  <data name="Main_Login"><value>התחברות</value></data>
+  <data name="Main_Register"><value>הרשמה</value></data>
+  <data name="Main_LoggedInAs"><value>מחובר בתור </value></data>
+  <data name="Main_RefreshSchedule"><value>רענון לוח זמנים</value></data>
+  <data name="Main_Logout"><value>התנתקות</value></data>
+  <data name="Main_AppSettings"><value>הגדרות אפליקציה</value></data>
+  <data name="Main_RunAtStartup"><value>הפעל בעת הפעלת Windows</value></data>
+  <data name="Main_RunAtStartupHint"><value>הפעל את האפליקציה באופן אוטומטי עם הפעלת Windows</value></data>
+  <data name="Main_ScheduleNote"><value>לוח הזמנים מנוהל מהשרת.</value></data>
+  <data name="Main_ScheduleNoteHint"><value>צפה ונהל את לוח הזמנים מלוח הבקרה; אפליקציה זו רק אוכפת אותו.</value></data>
+  <data name="Main_Status"><value>סטטוס</value></data>
+  <data name="Main_NotActive"><value>לא פעיל</value></data>
+  <data name="Main_ActivateLock"><value>הפעל נעילה</value></data>
+  <data name="Main_Exit"><value>יציאה</value></data>
+
+  <!-- LockScreen -->
+  <data name="Lock_Title"><value>המחשב נעול</value></data>
+  <data name="Lock_StatusMessage"><value>מחשב זה נעול כרגע.</value></data>
+  <data name="Lock_TodaysReminders"><value>תזכורות להיום</value></data>
+  <data name="Lock_AdminUnlock"><value>ביטול נעילה</value></data>
+  <data name="Lock_EnterPassword"><value>הזן סיסמת מנהל לביטול נעילה:</value></data>
+  <data name="Lock_Unlock"><value>ביטול נעילה</value></data>
+
+  <!-- ReminderWindow -->
+  <data name="Reminder_Title"><value>תזכורת</value></data>
+  <data name="Reminder_Dismiss"><value>סגור</value></data>
+
+  <!-- NotificationWindow -->
+  <data name="Notification_Title"><value>⚠️ אזהרת נעילת מחשב</value></data>
+  <data name="Notification_Message"><value>המחשב ייחסם בקרוב.</value></data>
+  <data name="Notification_Dismiss"><value>סגור</value></data>
+
+  <!-- PasswordDialog -->
+  <data name="PassDlg_Title"><value>אימות נדרש</value></data>
+  <data name="PassDlg_EnterPassword"><value>הזן סיסמת חשבון:</value></data>
+  <data name="PassDlg_OK"><value>אישור</value></data>
+  <data name="PassDlg_Cancel"><value>ביטול</value></data>
+</root>
