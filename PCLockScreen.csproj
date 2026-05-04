@@ -8,9 +8,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>PCLockScreen</AssemblyName>
     <RootNamespace>PCLockScreen</RootNamespace>
-    <Version>3.0.0</Version>
-    <AssemblyVersion>3.0.0</AssemblyVersion>
-    <FileVersion>3.0.0</FileVersion>
+    <Version>3.0.1</Version>
+    <AssemblyVersion>3.0.1</AssemblyVersion>
+    <FileVersion>3.0.1</FileVersion>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
