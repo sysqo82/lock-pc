@@ -518,6 +518,13 @@ namespace PCLockScreen
                     LoadConfiguration();
                     UpdateStatus();
 
+                    // Do not lock if freeze mode is active — the user deliberately paused monitoring.
+                    if (freezeMode)
+                    {
+                        Logger.Log("EvaluateSchedule: freezeMode active — skipping lock evaluation");
+                        return;
+                    }
+
                     var cfg = configManager.LoadConfig();
                     if (cfg.TimeRestrictionEnabled && IsInBlockedPeriod(cfg))
                     {
@@ -1481,8 +1488,11 @@ namespace PCLockScreen
                                 catch { }
                             }
 
-                            // When lock window closes, restart monitoring (reuse existing timer)
-                            if (monitorTimer != null)
+                            // When lock window closes, restart monitoring — but only if freeze
+                            // mode was NOT activated (i.e. the user unlocked outside a block period).
+                            // EnterFreezeMode() already stopped the monitor; restarting it here
+                            // would undo that and cause an immediate re-lock on the next tick.
+                            if (!freezeMode && monitorTimer != null)
                             {
                                 monitorTimer.Start();
                             }
@@ -1490,38 +1500,42 @@ namespace PCLockScreen
                             // Send status update to server
                             pcSocket?.SendStatusAsync("Unlocked").ConfigureAwait(false);
 
-                            // Schedule a forced re-evaluation after the unlock cooldown so
-                            // we don't rely solely on the monitor tick timing. Only one
-                            // cooldown timer will be active at any time.
-                            try
+                            // Schedule a forced re-evaluation after the unlock cooldown — but
+                            // only when freeze mode is NOT active. In freeze mode the user has
+                            // deliberately paused monitoring; firing EvaluateScheduleAndMaybeLock
+                            // after 60 s would re-lock the PC exactly when they thought it was paused.
+                            if (!freezeMode)
                             {
-                                if (cooldownTimer != null)
+                                try
                                 {
-                                    cooldownTimer.Stop();
-                                    cooldownTimer = null;
-                                }
-
-                                cooldownTimer = new DispatcherTimer();
-                                cooldownTimer.Interval = TimeSpan.FromSeconds(UnlockCooldownSeconds);
-                                cooldownTimer.Tick += async (ts, te) =>
-                                {
-                                    try
+                                    if (cooldownTimer != null)
                                     {
                                         cooldownTimer.Stop();
                                         cooldownTimer = null;
-                                        Logger.Log("Cooldown expired — re-evaluating schedule for possible re-lock");
-                                        await EvaluateScheduleAndMaybeLock();
                                     }
-                                    catch (Exception ex)
+
+                                    cooldownTimer = new DispatcherTimer();
+                                    cooldownTimer.Interval = TimeSpan.FromSeconds(UnlockCooldownSeconds);
+                                    cooldownTimer.Tick += async (ts, te) =>
                                     {
-                                        Logger.LogError("Error during cooldown re-eval", ex);
-                                    }
-                                };
-                                cooldownTimer.Start();
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.LogError("Failed to start cooldown timer", ex);
+                                        try
+                                        {
+                                            cooldownTimer.Stop();
+                                            cooldownTimer = null;
+                                            Logger.Log("Cooldown expired — re-evaluating schedule for possible re-lock");
+                                            await EvaluateScheduleAndMaybeLock();
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Logger.LogError("Error during cooldown re-eval", ex);
+                                        }
+                                    };
+                                    cooldownTimer.Start();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LogError("Failed to start cooldown timer", ex);
+                                }
                             }
 
                             // Don't show MainWindow - keep it hidden for security
