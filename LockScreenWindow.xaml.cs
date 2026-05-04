@@ -113,18 +113,18 @@ namespace PCLockScreen
                 var currentDay = now.DayOfWeek;
                 
                 // Find the current blocking period
+                var yesterdayForDisplay = (DayOfWeek)(((int)currentDay + 6) % 7);
                 TimeBlock currentBlock = null;
                 foreach (var block in config.TimeBlocks)
                 {
-                    if (!block.Days.Contains(currentDay))
-                        continue;
-
                     TimeSpan startTime = TimeSpan.Parse(block.StartTime);
                     TimeSpan endTime = TimeSpan.Parse(block.EndTime);
 
                     if (startTime < endTime)
                     {
-                        if (currentTime >= startTime && currentTime <= endTime)
+                        // Same-day block: block must be configured for today
+                        if (block.Days.Contains(currentDay) &&
+                            currentTime >= startTime && currentTime <= endTime)
                         {
                             currentBlock = block;
                             break;
@@ -132,7 +132,14 @@ namespace PCLockScreen
                     }
                     else
                     {
-                        if (currentTime >= startTime || currentTime <= endTime)
+                        // Overnight block: late-night portion → today must be in days;
+                        // early-morning portion → yesterday must be in days.
+                        if (currentTime >= startTime && block.Days.Contains(currentDay))
+                        {
+                            currentBlock = block;
+                            break;
+                        }
+                        if (currentTime <= endTime && block.Days.Contains(yesterdayForDisplay))
                         {
                             currentBlock = block;
                             break;
@@ -219,18 +226,17 @@ namespace PCLockScreen
                 var currentDay = now.DayOfWeek;
                 
                 bool isBlocked = false;
-                
+                var yesterdayForUnlock = (DayOfWeek)(((int)currentDay + 6) % 7);
+
                 foreach (var block in config.TimeBlocks)
                 {
-                    if (!block.Days.Contains(currentDay))
-                        continue;
-
                     TimeSpan startTime = TimeSpan.Parse(block.StartTime);
                     TimeSpan endTime = TimeSpan.Parse(block.EndTime);
 
                     if (startTime < endTime)
                     {
-                        if (currentTime >= startTime && currentTime <= endTime)
+                        if (block.Days.Contains(currentDay) &&
+                            currentTime >= startTime && currentTime <= endTime)
                         {
                             isBlocked = true;
                             break;
@@ -238,7 +244,12 @@ namespace PCLockScreen
                     }
                     else
                     {
-                        if (currentTime >= startTime || currentTime <= endTime)
+                        if (currentTime >= startTime && block.Days.Contains(currentDay))
+                        {
+                            isBlocked = true;
+                            break;
+                        }
+                        if (currentTime <= endTime && block.Days.Contains(yesterdayForUnlock))
                         {
                             isBlocked = true;
                             break;
@@ -258,27 +269,31 @@ namespace PCLockScreen
             var now = DateTime.Now;
             var currentTime = now.TimeOfDay;
             var currentDay = now.DayOfWeek;
-            
+            var yesterday = (DayOfWeek)(((int)currentDay + 6) % 7);
+
             foreach (var block in config.TimeBlocks)
             {
-                if (!block.Days.Contains(currentDay))
-                    continue;
-                
                 TimeSpan startTime = TimeSpan.Parse(block.StartTime);
                 TimeSpan endTime = TimeSpan.Parse(block.EndTime);
-                
+
                 if (startTime < endTime)
                 {
-                    if (currentTime >= startTime && currentTime <= endTime)
+                    // Same-day block: block must be configured for today
+                    if (block.Days.Contains(currentDay) &&
+                        currentTime >= startTime && currentTime <= endTime)
                         return true;
                 }
                 else
                 {
-                    if (currentTime >= startTime || currentTime <= endTime)
+                    // Overnight block: late-night portion → today must be in days;
+                    // early-morning portion → yesterday must be in days.
+                    if (currentTime >= startTime && block.Days.Contains(currentDay))
+                        return true;
+                    if (currentTime <= endTime && block.Days.Contains(yesterday))
                         return true;
                 }
             }
-            
+
             return false;
         }
 

@@ -670,11 +670,10 @@ namespace PCLockScreen
             // Check blocks for today
             foreach (var block in config.TimeBlocks)
             {
-                // Check if this block applies to today
                 if (block.Days.Contains(currentDay))
                 {
                     TimeSpan startTime = TimeSpan.Parse(block.StartTime);
-                    
+
                     if (currentTime < startTime)
                     {
                         var timeUntil = startTime - currentTime;
@@ -686,7 +685,7 @@ namespace PCLockScreen
                 }
             }
 
-            // If no blocks found today, check tomorrow's blocks (within next 24 hours)
+            // If no upcoming start found today, check tomorrow's blocks (within next 24 hours)
             if (!minTimeUntil.HasValue)
             {
                 var tomorrowDay = (DayOfWeek)(((int)currentDay + 1) % 7);
@@ -715,29 +714,33 @@ namespace PCLockScreen
             var now = DateTime.Now;
             var currentTime = now.TimeOfDay;
             var currentDay = now.DayOfWeek;
+            var yesterday = (DayOfWeek)(((int)currentDay + 6) % 7);
 
             foreach (var block in config.TimeBlocks)
             {
-                if (!block.Days.Contains(currentDay))
-                    continue;
-
                 TimeSpan startTime = TimeSpan.Parse(block.StartTime);
                 TimeSpan endTime = TimeSpan.Parse(block.EndTime);
 
                 if (startTime < endTime)
                 {
-                    // Normal case: blocked from startTime to endTime
-                    if (currentTime >= startTime && currentTime <= endTime)
+                    // Normal (same-day) block: check that today is a configured day
+                    if (block.Days.Contains(currentDay) &&
+                        currentTime >= startTime && currentTime <= endTime)
                         return true;
                 }
                 else
                 {
-                    // Overnight case: blocked from startTime to endTime next day
-                    if (currentTime >= startTime || currentTime <= endTime)
+                    // Overnight block: the late-night portion (>= startTime) belongs to
+                    // the day the block starts (currentDay), while the early-morning
+                    // portion (<= endTime) belongs to the day AFTER the block starts
+                    // (i.e. yesterday must be a configured day).
+                    if (currentTime >= startTime && block.Days.Contains(currentDay))
+                        return true;
+                    if (currentTime <= endTime && block.Days.Contains(yesterday))
                         return true;
                 }
             }
-            
+
             return false;
         }
 
