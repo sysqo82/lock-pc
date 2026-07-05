@@ -75,6 +75,7 @@ namespace PCLockScreen
 
         private DispatcherTimer cooldownTimer = null;
         private DispatcherTimer handshakeTimer = null;
+        private DispatcherTimer autoResumeTimer = null;
         private DateTime? lastUnlockAt = null;
         private const int UnlockCooldownSeconds = 60;
         private bool warningShown = false; // 1-minute warning
@@ -716,6 +717,38 @@ namespace PCLockScreen
             return minTimeUntil;
         }
 
+        private DateTime? GetCurrentBlockEndTime(LockConfig config)
+        {
+            var now = DateTime.Now;
+            var currentTime = now.TimeOfDay;
+            var currentDay = now.DayOfWeek;
+            var yesterday = (DayOfWeek)(((int)currentDay + 6) % 7);
+
+            foreach (var block in config.TimeBlocks)
+            {
+                TimeSpan startTime = TimeSpan.Parse(block.StartTime);
+                TimeSpan endTime = TimeSpan.Parse(block.EndTime);
+
+                if (startTime < endTime)
+                {
+                    if (block.Days.Contains(currentDay) &&
+                        currentTime >= startTime && currentTime <= endTime)
+                        return now.Date + endTime;
+                }
+                else
+                {
+                    // Overnight block — late-night portion ends tomorrow
+                    if (currentTime >= startTime && block.Days.Contains(currentDay))
+                        return now.Date.AddDays(1) + endTime;
+                    // Early-morning portion ends today
+                    if (currentTime <= endTime && block.Days.Contains(yesterday))
+                        return now.Date + endTime;
+                }
+            }
+
+            return null;
+        }
+
         private bool IsInBlockedPeriod(LockConfig config)
         {
             var now = DateTime.Now;
@@ -864,7 +897,32 @@ namespace PCLockScreen
             {
                 resumeMenuItem.Visible = true;
             }
-            
+
+            // Schedule auto-resume when the current lock period ends
+            try
+            {
+                var cfg = configManager.LoadConfig();
+                DateTime? blockEnd = GetCurrentBlockEndTime(cfg);
+                if (blockEnd.HasValue && blockEnd.Value > DateTime.Now)
+                {
+                    var delay = blockEnd.Value - DateTime.Now;
+                    autoResumeTimer = new DispatcherTimer();
+                    autoResumeTimer.Interval = delay;
+                    autoResumeTimer.Tick += (s, e) =>
+                    {
+                        autoResumeTimer.Stop();
+                        autoResumeTimer = null;
+                        ResumeMonitoring();
+                    };
+                    autoResumeTimer.Start();
+                    Logger.Log($"EnterFreezeMode: auto-resume scheduled for {blockEnd.Value:HH:mm:ss}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("EnterFreezeMode: failed to schedule auto-resume", ex);
+            }
+
             try
             {
                 notifyIcon.ShowBalloonTip(
@@ -880,6 +938,16 @@ namespace PCLockScreen
         private void ResumeMonitoring()
         {
             freezeMode = false;
+            // Cancel any pending auto-resume timer
+            try
+            {
+                if (autoResumeTimer != null)
+                {
+                    autoResumeTimer.Stop();
+                    autoResumeTimer = null;
+                }
+            }
+            catch { }
             // Reset unlock cooldown and restart monitoring
             try { lastUnlockAt = null; } catch { }
             try { if (monitorTimer != null) monitorTimer.Start(); } catch { }
