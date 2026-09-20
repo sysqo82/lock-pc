@@ -12,20 +12,13 @@ namespace PCLockScreen
     {
         public string StartTime { get; set; } = "22:00";
         public string EndTime { get; set; } = "08:00";
-        public List<DayOfWeek> Days { get; set; } = new List<DayOfWeek> 
-        { 
-            DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, 
-            DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday 
-        };
+        public List<DayOfWeek> Days { get; set; } = new List<DayOfWeek>();
     }
 
     public class LockConfig
     {
         public bool TimeRestrictionEnabled { get; set; }
-        public List<TimeBlock> TimeBlocks { get; set; } = new List<TimeBlock> 
-        { 
-            new TimeBlock() 
-        };
+        public List<TimeBlock> TimeBlocks { get; set; } = new List<TimeBlock>();
         public bool RunAtStartup { get; set; }
         // Optional runtime-overridable server base URL. If empty, client uses built-in default.
         public string ServerBaseUrl { get; set; } = string.Empty;

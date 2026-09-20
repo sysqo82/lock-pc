@@ -17,6 +17,32 @@ namespace PCLockScreen
             InitializeComponent();
             this.configManager = configManager;
             LoadSchedule();
+            this.Loaded += async (s, e) => { await AutoRefreshScheduleAsync(); };
+        }
+
+        private async Task AutoRefreshScheduleAsync()
+        {
+            try
+            {
+                var config = configManager.LoadConfig();
+                if (string.IsNullOrWhiteSpace(config.AccountEmail))
+                    return;
+
+                bool authOk = await ServerSession.EnsureLoggedInAsync(configManager);
+                if (!authOk)
+                    return;
+
+                StatusText.Text = Loc.Instance.Strings.Sched_Refreshing;
+
+                bool ok = await SyncScheduleFromServer();
+                LoadSchedule();
+
+                if (ok)
+                {
+                    StatusText.Text = Loc.Instance.Strings.Sched_EnabledLatest;
+                }
+            }
+            catch { }
         }
 
         public void LoadSchedule()
@@ -264,6 +290,9 @@ namespace PCLockScreen
         
         private string GetDaysDescription(List<DayOfWeek> days)
         {
+            if (days == null || days.Count == 0)
+                return "No days selected";
+
             var s = Loc.Instance.Strings;
             if (days.Count == 7)
                 return s.Days_EveryDay;
@@ -319,10 +348,15 @@ namespace PCLockScreen
         {
             try
             {
-                var blocks = await ServerSession.GetScheduleAsync();
+                var serverBlocks = await ServerSession.GetScheduleAsync();
+                if (serverBlocks == null)
+                {
+                    return false;
+                }
+
                 var config = configManager.LoadConfig();
-                config.TimeBlocks = blocks;
-                config.TimeRestrictionEnabled = blocks != null && blocks.Count > 0;
+                config.TimeBlocks = serverBlocks;
+                config.TimeRestrictionEnabled = serverBlocks.Count > 0;
                 configManager.SaveConfig(config);
                 return true;
             }

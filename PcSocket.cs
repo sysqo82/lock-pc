@@ -6,7 +6,7 @@ namespace PCLockScreen
 {
     /// <summary>
     /// Socket.IO client used by the PC to register with the server
-    /// and receive remote commands (e.g. lock).
+    /// and receive remote commands (e.g. lock, pause, unlock, resume).
     /// </summary>
     public class PcSocket
     {
@@ -49,7 +49,6 @@ namespace PCLockScreen
                 {
                     Logger.Log($"Socket connected for PC {_pcId} ({_pcName}), Socket.IO ID: {_socket.Id}");
 
-                    // Directly emit register_pc here (don't call RegisterPcWithSocketAsync to avoid recursion)
                     try
                     {
                         var localIp = GetPreferredLocalIPv4();
@@ -62,8 +61,6 @@ namespace PCLockScreen
                         Logger.LogError("Failed to emit register_pc on connect", ex);
                     }
 
-                    // Send initial status even if the provider returns null so the
-                    // server updates lastStatusAt and probes can succeed.
                     try
                     {
                         var status = _statusProvider?.Invoke();
@@ -90,25 +87,100 @@ namespace PCLockScreen
             {
                 try
                 {
-                    var json = response.GetValue<string>();
-                    Logger.Log($"Received command payload: {json}");
-                    if (string.IsNullOrWhiteSpace(json))
-                        return;
-
-                    using var doc = JsonDocument.Parse(json);
-                    if (!doc.RootElement.TryGetProperty("action", out var actionElement))
-                        return;
-
-                    var action = actionElement.GetString();
+                    var action = ExtractActionFromResponse(response);
+                    Logger.Log($"Received 'command' event: {action}");
                     if (!string.IsNullOrWhiteSpace(action))
                     {
-                        Logger.Log($"Invoking command handler: {action}");
                         _commandHandler?.Invoke(action);
                     }
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError("Error processing command event", ex);
+                }
+            });
+
+            _socket.On("pause", response =>
+            {
+                try
+                {
+                    var action = ExtractActionFromResponse(response) ?? "pause";
+                    Logger.Log($"Received 'pause' event: {action}");
+                    _commandHandler?.Invoke(action);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error processing pause event", ex);
+                }
+            });
+
+            _socket.On("unlock", response =>
+            {
+                try
+                {
+                    var action = ExtractActionFromResponse(response) ?? "unlock";
+                    Logger.Log($"Received 'unlock' event: {action}");
+                    _commandHandler?.Invoke(action);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error processing unlock event", ex);
+                }
+            });
+
+            _socket.On("freeze", response =>
+            {
+                try
+                {
+                    var action = ExtractActionFromResponse(response) ?? "freeze";
+                    Logger.Log($"Received 'freeze' event: {action}");
+                    _commandHandler?.Invoke(action);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error processing freeze event", ex);
+                }
+            });
+
+            _socket.On("resume", response =>
+            {
+                try
+                {
+                    var action = ExtractActionFromResponse(response) ?? "resume";
+                    Logger.Log($"Received 'resume' event: {action}");
+                    _commandHandler?.Invoke(action);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error processing resume event", ex);
+                }
+            });
+
+            _socket.On("unpause", response =>
+            {
+                try
+                {
+                    var action = ExtractActionFromResponse(response) ?? "unpause";
+                    Logger.Log($"Received 'unpause' event: {action}");
+                    _commandHandler?.Invoke(action);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error processing unpause event", ex);
+                }
+            });
+
+            _socket.On("lock", response =>
+            {
+                try
+                {
+                    var action = ExtractActionFromResponse(response) ?? "lock";
+                    Logger.Log($"Received 'lock' event: {action}");
+                    _commandHandler?.Invoke(action);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error processing lock event", ex);
                 }
             });
 
@@ -138,7 +210,6 @@ namespace PCLockScreen
                 }
             });
 
-            // Respond to server probe/status_request by returning current status
             _socket.On("status_request", async response =>
             {
                 try
@@ -162,10 +233,8 @@ namespace PCLockScreen
                     }
 
                     var status = _statusProvider?.Invoke() ?? "Unknown";
-                    // Fire-and-forget — update server mapping via pc_status event
                     _ = SendStatusAsync(status);
 
-                    // If the server provided a probeId, reply directly so probes get immediate answers
                     if (!string.IsNullOrWhiteSpace(probeId))
                     {
                         try
@@ -195,8 +264,6 @@ namespace PCLockScreen
                 try
                 {
                     Logger.Log($"Socket disconnected for PC {_pcId} ({_pcName}). Reason: {args}");
-                    // Rely on the Socket.IO client library's automatic reconnect logic
-                    // to avoid racing duplicate connection attempts.
                 }
                 catch { }
             };
@@ -227,6 +294,60 @@ namespace PCLockScreen
                 }
                 catch { }
             };
+        }
+
+        private static string ExtractActionFromResponse(SocketIOClient.SocketIOResponse response)
+        {
+            if (response == null) return null;
+
+            try
+            {
+                var element = response.GetValue<JsonElement>();
+                if (element.ValueKind == JsonValueKind.Object)
+                {
+                    if (element.TryGetProperty("action", out var prop) && prop.ValueKind == JsonValueKind.String)
+                        return prop.GetString();
+                    if (element.TryGetProperty("command", out var prop2) && prop2.ValueKind == JsonValueKind.String)
+                        return prop2.GetString();
+                    if (element.TryGetProperty("type", out var prop3) && prop3.ValueKind == JsonValueKind.String)
+                        return prop3.GetString();
+                }
+                else if (element.ValueKind == JsonValueKind.String)
+                {
+                    var str = element.GetString();
+                    if (!string.IsNullOrWhiteSpace(str))
+                    {
+                        if (str.TrimStart().StartsWith("{"))
+                        {
+                            using var doc = JsonDocument.Parse(str);
+                            if (doc.RootElement.TryGetProperty("action", out var p1) && p1.ValueKind == JsonValueKind.String) return p1.GetString();
+                            if (doc.RootElement.TryGetProperty("command", out var p2) && p2.ValueKind == JsonValueKind.String) return p2.GetString();
+                            if (doc.RootElement.TryGetProperty("type", out var p3) && p3.ValueKind == JsonValueKind.String) return p3.GetString();
+                        }
+                        return str;
+                    }
+                }
+            }
+            catch { }
+
+            try
+            {
+                var rawStr = response.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(rawStr))
+                {
+                    if (rawStr.TrimStart().StartsWith("{"))
+                    {
+                        using var doc = JsonDocument.Parse(rawStr);
+                        if (doc.RootElement.TryGetProperty("action", out var p1) && p1.ValueKind == JsonValueKind.String) return p1.GetString();
+                        if (doc.RootElement.TryGetProperty("command", out var p2) && p2.ValueKind == JsonValueKind.String) return p2.GetString();
+                        if (doc.RootElement.TryGetProperty("type", out var p3) && p3.ValueKind == JsonValueKind.String) return p3.GetString();
+                    }
+                    return rawStr;
+                }
+            }
+            catch { }
+
+            return null;
         }
 
         public async Task ConnectAsync()
@@ -264,11 +385,6 @@ namespace PCLockScreen
 
         public Task DisconnectAsync() => _socket.DisconnectAsync();
 
-        /// <summary>
-        /// Explicitly re-send the register_pc event over the existing socket
-        /// connection. This can be used after login to ensure the server
-        /// associates the connected socket with the authenticated user.
-        /// </summary>
         public async Task RegisterPcWithSocketAsync()
         {
             try
@@ -277,7 +393,6 @@ namespace PCLockScreen
                 {
                     Logger.Log($"RegisterPcWithSocketAsync: socket not connected for {_pcId}, attempting connect...");
                     await _socket.ConnectAsync().ConfigureAwait(false);
-                    // Give the OnConnected handler a moment to fire and complete registration
                     await Task.Delay(500).ConfigureAwait(false);
                     return;
                 }
@@ -299,7 +414,6 @@ namespace PCLockScreen
             {
                 foreach (var ni in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
                 {
-                    // Skip down, loopback, tunnel, and virtual/adapters we don't want
                     if (ni.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
                     var t = ni.NetworkInterfaceType;
                     if (t == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
@@ -310,7 +424,6 @@ namespace PCLockScreen
                     if (name.Contains("vethernet") || name.Contains("docker") || name.Contains("virtual") || desc.Contains("hyper-v") || desc.Contains("vmware")) continue;
 
                     var props = ni.GetIPProperties();
-                    // Prefer interfaces with a default gateway
                     if (props.GatewayAddresses != null && props.GatewayAddresses.Count > 0)
                     {
                         foreach (var ua in props.UnicastAddresses)
@@ -323,7 +436,6 @@ namespace PCLockScreen
                     }
                 }
 
-                // Fallback: pick any non-loopback IPv4
                 foreach (var ni in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
                 {
                     if (ni.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
@@ -342,10 +454,6 @@ namespace PCLockScreen
             return null;
         }
 
-        /// <summary>
-        /// Send the current lock screen status to the server.
-        /// </summary>
-        /// <param name="status">"Locked" or "Unlocked"</param>
         public async Task SendStatusAsync(string status)
         {
             try

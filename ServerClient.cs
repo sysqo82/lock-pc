@@ -88,33 +88,145 @@ namespace PCLockScreen
         }
 
         /// <summary>
-        /// Get the lock schedule from the server as raw JSON.
-        /// Expected path is /api/block-period and should return a JSON array
-        /// of time block definitions.
-        /// Throws <see cref="UnauthorizedAccessException"/> when the server returns 401,
-        /// allowing callers to detect a stale/expired session.
+        /// Get the lock schedule from the server as raw JSON payloads.
+        /// Supports querying per-PC endpoints, pluralized API paths, and global endpoints.
+        /// Throws <see cref="UnauthorizedAccessException"/> when the server returns 401.
         /// </summary>
-        public async Task<string> GetBlockPeriodsJsonAsync()
+        public async Task<List<string>> GetBlockPeriodsJsonListAsync(string pcId = null)
         {
-            var response = await _client.GetAsync("/api/block-period").ConfigureAwait(false);
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            var responses = new List<string>();
+            var endpointsToTry = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(pcId))
+            {
+                var cleanPcId = Uri.EscapeDataString(pcId.Trim());
+                endpointsToTry.Add($"/api/block-periods?pcId={cleanPcId}&pc_id={cleanPcId}&id={cleanPcId}");
+                endpointsToTry.Add($"/api/block-period?pcId={cleanPcId}&pc_id={cleanPcId}&id={cleanPcId}");
+                endpointsToTry.Add($"/api/schedules?pcId={cleanPcId}&pc_id={cleanPcId}&id={cleanPcId}");
+                endpointsToTry.Add($"/api/schedule?pcId={cleanPcId}&pc_id={cleanPcId}&id={cleanPcId}");
+                endpointsToTry.Add($"/api/pc/{cleanPcId}/block-periods");
+                endpointsToTry.Add($"/api/pc/{cleanPcId}/block-period");
+                endpointsToTry.Add($"/api/pc/{cleanPcId}/schedules");
+                endpointsToTry.Add($"/api/pc/{cleanPcId}/schedule");
+            }
+
+            endpointsToTry.Add("/api/block-periods");
+            endpointsToTry.Add("/api/block-period");
+            endpointsToTry.Add("/api/block_periods");
+            endpointsToTry.Add("/api/block_period");
+            endpointsToTry.Add("/api/schedules");
+            endpointsToTry.Add("/api/schedule");
+            endpointsToTry.Add("/api/time-blocks");
+            endpointsToTry.Add("/api/time_blocks");
+            endpointsToTry.Add("/api/timeblocks");
+            endpointsToTry.Add("/api/timeblock");
+
+            bool hadUnauthorized = false;
+
+            foreach (var path in endpointsToTry)
+            {
+                try
+                {
+                    var response = await _client.GetAsync(path).ConfigureAwait(false);
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        hadUnauthorized = true;
+                        continue;
+                    }
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        if (!string.IsNullOrWhiteSpace(json) && json.Length > 2)
+                        {
+                            responses.Add(json);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore individual endpoint failure
+                }
+            }
+
+            if (responses.Count == 0 && hadUnauthorized)
+            {
                 throw new UnauthorizedAccessException("Server session expired or invalid.");
-            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+
+            return responses;
+        }
+
+        public async Task<string> GetBlockPeriodsJsonAsync(string pcId = null)
+        {
+            var list = await GetBlockPeriodsJsonListAsync(pcId).ConfigureAwait(false);
+            return list.Count > 0 ? list[0] : null;
         }
 
         /// <summary>
-        /// Get the reminders from the server as raw JSON.
-        /// Expected path is /api/reminder and should return a JSON array
-        /// of reminder definitions.
-        /// Throws <see cref="UnauthorizedAccessException"/> when the server returns 401,
-        /// allowing callers to detect a stale/expired session.
+        /// Get reminders from the server as raw JSON payloads.
+        /// Supports querying per-PC endpoints, pluralized API paths, and global endpoints.
+        /// Throws <see cref="UnauthorizedAccessException"/> when the server returns 401.
         /// </summary>
-        public async Task<string> GetRemindersJsonAsync()
+        public async Task<List<string>> GetRemindersJsonListAsync(string pcId = null)
         {
-            var response = await _client.GetAsync("/api/reminder").ConfigureAwait(false);
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            var responses = new List<string>();
+            var endpointsToTry = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(pcId))
+            {
+                var cleanPcId = Uri.EscapeDataString(pcId.Trim());
+                endpointsToTry.Add($"/api/reminders?pcId={cleanPcId}&pc_id={cleanPcId}&id={cleanPcId}");
+                endpointsToTry.Add($"/api/reminder?pcId={cleanPcId}&pc_id={cleanPcId}&id={cleanPcId}");
+                endpointsToTry.Add($"/api/pc/{cleanPcId}/reminders");
+                endpointsToTry.Add($"/api/pc/{cleanPcId}/reminder");
+            }
+
+            endpointsToTry.Add("/api/reminders");
+            endpointsToTry.Add("/api/reminder");
+            endpointsToTry.Add("/api/reminder_list");
+            endpointsToTry.Add("/api/reminder-list");
+
+            bool hadUnauthorized = false;
+
+            foreach (var path in endpointsToTry)
+            {
+                try
+                {
+                    var response = await _client.GetAsync(path).ConfigureAwait(false);
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        hadUnauthorized = true;
+                        continue;
+                    }
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        if (!string.IsNullOrWhiteSpace(json) && json.Length > 2)
+                        {
+                            responses.Add(json);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore individual endpoint failure
+                }
+            }
+
+            if (responses.Count == 0 && hadUnauthorized)
+            {
                 throw new UnauthorizedAccessException("Server session expired or invalid.");
-            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+
+            return responses;
+        }
+
+        public async Task<string> GetRemindersJsonAsync(string pcId = null)
+        {
+            var list = await GetRemindersJsonListAsync(pcId).ConfigureAwait(false);
+            return list.Count > 0 ? list[0] : null;
         }
 
         public async Task<HttpResponseMessage> LogoutAsync()
