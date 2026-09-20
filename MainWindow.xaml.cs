@@ -182,6 +182,9 @@ namespace PCLockScreen
                             {
                                 return Dispatcher.Invoke(() =>
                                 {
+                                    if (freezeMode)
+                                        return "Paused";
+
                                     // If a LockScreenWindow is currently visible, consider the PC locked
                                     foreach (Window w in System.Windows.Application.Current.Windows)
                                     {
@@ -192,10 +195,13 @@ namespace PCLockScreen
                                     var cfg = configManager.LoadConfig();
                                     var inBlockedPeriod = IsInBlockedPeriod(cfg);
                                     var status = inBlockedPeriod ? "Locked" : "Unlocked";
-                                    Logger.Log($"Status provider returning: {status} (inBlockedPeriod: {inBlockedPeriod})");
+                                    Logger.Log($"Status provider returning: {status} (inBlockedPeriod: {inBlockedPeriod}, freezeMode: {freezeMode})");
                                     return status;
                                 });
                             }
+
+                            if (freezeMode)
+                                return "Paused";
 
                             // Already on UI thread
                             foreach (Window w in System.Windows.Application.Current.Windows)
@@ -207,7 +213,7 @@ namespace PCLockScreen
                             var config = configManager.LoadConfig();
                             var blocked = IsInBlockedPeriod(config);
                             var currentStatus = blocked ? "Locked" : "Unlocked";
-                            Logger.Log($"Status provider returning: {currentStatus} (inBlockedPeriod: {blocked})");
+                            Logger.Log($"Status provider returning: {currentStatus} (inBlockedPeriod: {blocked}, freezeMode: {freezeMode})");
                             return currentStatus;
                         }
                         catch (Exception ex)
@@ -232,7 +238,12 @@ namespace PCLockScreen
             // Ensure any UI/lock operations run on the dispatcher thread
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (string.Equals(action, "lock", StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrWhiteSpace(action))
+                    return;
+
+                var cmd = action.Trim().ToLowerInvariant();
+
+                if (cmd == "lock")
                 {
                     if (freezeMode)
                     {
@@ -241,6 +252,27 @@ namespace PCLockScreen
                     }
 
                     ActivateLock();
+                }
+                else if (cmd == "pause" || cmd == "freeze" || cmd == "unlock")
+                {
+                    Logger.Log($"OnServerCommandReceived: '{action}' command received — entering freeze mode");
+                    foreach (var w in activeLockWindows.ToList())
+                    {
+                        try
+                        {
+                            if (w != null && w.IsVisible)
+                                w.ForceClose();
+                        }
+                        catch { }
+                    }
+                    activeLockWindows.Clear();
+
+                    EnterFreezeMode();
+                }
+                else if (cmd == "resume" || cmd == "unpause")
+                {
+                    Logger.Log($"OnServerCommandReceived: '{action}' command received — resuming monitoring");
+                    ResumeMonitoring();
                 }
             }));
         }
@@ -639,24 +671,32 @@ namespace PCLockScreen
                 {
                     if (pcSocket != null)
                     {
-                        // Check if lock screen is active
-                        bool isLocked = false;
-                        foreach (Window w in System.Windows.Application.Current.Windows)
+                        string status;
+                        if (freezeMode)
                         {
-                            if (w is LockScreenWindow && w.IsVisible)
+                            status = "Paused";
+                        }
+                        else
+                        {
+                            bool isLocked = false;
+                            foreach (Window w in System.Windows.Application.Current.Windows)
                             {
-                                isLocked = true;
-                                break;
+                                if (w is LockScreenWindow && w.IsVisible)
+                                {
+                                    isLocked = true;
+                                    break;
+                                }
                             }
+
+                            if (!isLocked)
+                            {
+                                var config = configManager.LoadConfig();
+                                isLocked = IsInBlockedPeriod(config);
+                            }
+
+                            status = isLocked ? "Locked" : "Unlocked";
                         }
 
-                        if (!isLocked)
-                        {
-                            var config = configManager.LoadConfig();
-                            isLocked = IsInBlockedPeriod(config);
-                        }
-
-                        var status = isLocked ? "Locked" : "Unlocked";
                         _ = pcSocket.SendStatusAsync(status);
                     }
                 }
@@ -898,6 +938,9 @@ namespace PCLockScreen
                 resumeMenuItem.Visible = true;
             }
 
+            // Report "Paused" status to server so backend stays in sync
+            try { _ = pcSocket?.SendStatusAsync("Paused"); } catch { }
+
             // Schedule auto-resume when the current lock period ends
             try
             {
@@ -957,7 +1000,13 @@ namespace PCLockScreen
             {
                 resumeMenuItem.Visible = false;
             }
-            
+
+            _ = SyncScheduleFromServer();
+
+            var cfg = configManager.LoadConfig();
+            var currentStatus = IsInBlockedPeriod(cfg) ? "Locked" : "Unlocked";
+            try { _ = pcSocket?.SendStatusAsync(currentStatus); } catch { }
+
             try
             {
                 notifyIcon.ShowBalloonTip(
@@ -1307,40 +1356,115 @@ namespace PCLockScreen
             }
         }
 
+        public static bool ShouldPreserveBlockForToday(TimeBlock block, DateTime now)
+        {
+            if (block == null || block.Days == null)
+                return false;
+
+            var currentTime = now.TimeOfDay;
+            var currentDay = now.DayOfWeek;
+            var yesterday = (DayOfWeek)(((int)currentDay + 6) % 7);
+
+            try
+            {
+                TimeSpan startTime = TimeSpan.Parse(block.StartTime);
+                TimeSpan endTime = TimeSpan.Parse(block.EndTime);
+
+                var marginStart = startTime.Subtract(TimeSpan.FromMinutes(15));
+                if (marginStart < TimeSpan.Zero) marginStart = TimeSpan.Zero;
+
+                if (startTime < endTime)
+                {
+                    if (block.Days.Contains(currentDay) &&
+                        currentTime >= marginStart && currentTime <= endTime)
+                        return true;
+                }
+                else
+                {
+                    if (currentTime >= marginStart && block.Days.Contains(currentDay))
+                        return true;
+                    if (currentTime <= endTime && block.Days.Contains(yesterday))
+                        return true;
+                }
+            }
+            catch { }
+
+            return false;
+        }
+
+        public static bool IsBlockCurrentlyActive(TimeBlock block, DateTime now)
+        {
+            if (block == null || block.Days == null)
+                return false;
+
+            var currentTime = now.TimeOfDay;
+            var currentDay = now.DayOfWeek;
+            var yesterday = (DayOfWeek)(((int)currentDay + 6) % 7);
+
+            try
+            {
+                TimeSpan startTime = TimeSpan.Parse(block.StartTime);
+                TimeSpan endTime = TimeSpan.Parse(block.EndTime);
+
+                if (startTime < endTime)
+                {
+                    if (block.Days.Contains(currentDay) &&
+                        currentTime >= startTime && currentTime <= endTime)
+                        return true;
+                }
+                else
+                {
+                    if (currentTime >= startTime && block.Days.Contains(currentDay))
+                        return true;
+                    if (currentTime <= endTime && block.Days.Contains(yesterday))
+                        return true;
+                }
+            }
+            catch { }
+
+            return false;
+        }
+
         private async Task<bool> SyncScheduleFromServer()
         {
             try
             {
-                var blocks = await ServerSession.GetScheduleAsync();
-                Logger.Log($"SyncScheduleFromServer: fetched { (blocks==null?0:blocks.Count) } blocks");
-                if (blocks != null)
+                var serverBlocks = await ServerSession.GetScheduleAsync();
+                Logger.Log($"SyncScheduleFromServer: fetched { (serverBlocks == null ? "null" : serverBlocks.Count.ToString()) } blocks from server");
+                if (serverBlocks == null)
                 {
-                    for (int i = 0; i < blocks.Count; i++)
-                    {
-                        var b = blocks[i];
-                        var days = b.Days != null ? string.Join(',', b.Days) : "(none)";
-                        Logger.Log($"Block[{i}]: {b.StartTime}-{b.EndTime} Days:{days}");
-                    }
-                }
-
-                var config = configManager.LoadConfig();
-                // If server returned null, indicate failure.
-                if (blocks == null)
-                {
-                    Logger.Log("SyncScheduleFromServer: server returned null (error)");
+                    Logger.Log("SyncScheduleFromServer: server returned null (error) — preserving existing config");
                     return false;
                 }
 
-                // Always apply server result (including empty list = all blocks deleted).
-                // Null already handled above; 0 is a valid "no restrictions" state.
-                config.TimeBlocks = blocks;
-                config.TimeRestrictionEnabled = blocks.Count > 0;
+                for (int i = 0; i < serverBlocks.Count; i++)
+                {
+                    var b = serverBlocks[i];
+                    var days = b.Days != null ? string.Join(',', b.Days) : "(none)";
+                    Logger.Log($"Block[{i}]: {b.StartTime}-{b.EndTime} Days:{days}");
+                }
+
+                var config = configManager.LoadConfig();
+
+                // Server is the single authoritative source of truth for schedule configuration.
+                // Directly set local blocks from server response so edits/deletions on phone apply cleanly.
+                config.TimeBlocks = serverBlocks;
+                config.TimeRestrictionEnabled = serverBlocks.Count > 0;
                 configManager.SaveConfig(config);
-                Logger.Log($"SyncScheduleFromServer: saved config. Now={DateTime.Now:O}");
+
+                // If freezeMode is active but we are no longer in a blocked period for current schedule, exit freezeMode
+                if (freezeMode && !IsInBlockedPeriod(config))
+                {
+                    Logger.Log("SyncScheduleFromServer: no longer in blocked period — exiting freezeMode");
+                    ResumeMonitoring();
+                }
+
+                Logger.Log($"SyncScheduleFromServer: saved config with {serverBlocks.Count} blocks. Now={DateTime.Now:O}");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.LogError("SyncScheduleFromServer exception", ex);
                 return false;
             }
         }
@@ -1566,7 +1690,8 @@ namespace PCLockScreen
                             }
 
                             // Send status update to server
-                            pcSocket?.SendStatusAsync("Unlocked").ConfigureAwait(false);
+                            var closureStatus = freezeMode ? "Paused" : "Unlocked";
+                            pcSocket?.SendStatusAsync(closureStatus).ConfigureAwait(false);
 
                             // Schedule a forced re-evaluation after the unlock cooldown — but
                             // only when freeze mode is NOT active. In freeze mode the user has
@@ -1701,6 +1826,9 @@ namespace PCLockScreen
         
         private string GetDaysDescription(List<DayOfWeek> days)
         {
+            if (days == null || days.Count == 0)
+                return "No days selected";
+
             var s = Loc.Instance.Strings;
             if (days.Count == 7)
                 return s.Days_EveryDay;
