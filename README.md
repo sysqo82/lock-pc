@@ -7,7 +7,7 @@ A Windows desktop application that locks the screen and prevents user interactio
 ✅ **Full-Screen Lock**: Creates an overlay that blocks all interaction with Windows desktop  
 ✅ **Time-Based Controls**: Configure allowed usage hours (e.g., 8 AM to 10 PM)  
 ✅ **Admin Authentication**: Password-protected unlock mechanism  
-✅ **Process Protection**: Prevents termination via Task Manager (requires admin privileges)  
+✅ **Task Manager Restrictions**: Disables Task Manager while the lock screen is active
 ✅ **Keyboard Block**: Disables common shortcuts like Alt+F4, Alt+Tab, Ctrl+Alt+Delete  
 
 ## Requirements
