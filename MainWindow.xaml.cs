@@ -81,7 +81,6 @@ namespace PCLockScreen
         private bool warningShown = false; // 1-minute warning
         private bool fiveMinuteWarningShown = false; // 5-minute warning
         private ObservableCollection<TimeBlockViewModel> timeBlocks;
-        private ProcessProtection processProtection;
         private bool freezeMode = false;
         private ToolStripMenuItem resumeMenuItem;
         private ToolStripMenuItem trayShowItem;
@@ -132,11 +131,6 @@ namespace PCLockScreen
             StartStartupMonitoring();
             StartStatusReporting();
             
-            // Enable process protection on startup to make it hard to kill
-            // But don't disable Task Manager - only disable during lock
-            processProtection = new ProcessProtection();
-            processProtection.EnableProtection();
-
             InitializeServerConnection();
         }
 
@@ -1027,12 +1021,6 @@ namespace PCLockScreen
             notifyIcon.Visible = false;
             notifyIcon.Dispose();
             
-            // Disable process protection on legitimate exit
-            if (processProtection != null)
-            {
-                processProtection.DisableProtection();
-            }
-
             // Best-effort socket disconnect
             if (pcSocket != null)
             {

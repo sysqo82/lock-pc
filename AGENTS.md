@@ -17,3 +17,14 @@
 - Never EVER touch anything out of the scope of fix, feature or refactor code
 - If I ask you to use a skill, you can find them in the `D:\D backup\My Documents\projects\skills` directory. Always refer to that path to read skill instructions.
 - Always increase the version number when writing new code
+- When committing the code and pushing to GitHub, ALWAYS write a comprehensive PR note containing:
+  - **Summary**: A high-level overview of the PR purpose.
+  - **What Was Changed**: Bulleted breakdown of all new, extracted, or refactored components and logic.
+  - **Dependencies & Version Control**: Bullet points detailing `versionCode`/`versionName` bumps, dependency changes, and Gradle/AGP updates.
+  - **Testing & Verification**: Summary of unit/integration test suites added, test execution results, and build status.
+
+## Versioning
+
+- When changing app code, increment the version and set `<Version>`, `<AssemblyVersion>`, and `<FileVersion>` to the same value in `PCLockScreen.csproj`.
+- Set `AppVersion` in `installer.iss` to the same value.
+- Ensure the About dialog shows the bumped version. It currently reads the assembly version dynamically in `MainWindow.xaml.cs`, so preserve that behavior rather than hardcoding a separate version.
