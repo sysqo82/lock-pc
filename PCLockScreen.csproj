@@ -8,13 +8,15 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>PCLockScreen</AssemblyName>
     <RootNamespace>PCLockScreen</RootNamespace>
-    <Version>3.0.19</Version>
-    <AssemblyVersion>3.0.19</AssemblyVersion>
-    <FileVersion>3.0.19</FileVersion>
+    <Version>3.0.20</Version>
+    <AssemblyVersion>3.0.20</AssemblyVersion>
+    <FileVersion>3.0.20</FileVersion>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SatelliteResourceLanguages>en;he</SatelliteResourceLanguages>
+    <PathMap>$(MSBuildProjectDirectory)=.</PathMap>
+    <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
 
   <ItemGroup>

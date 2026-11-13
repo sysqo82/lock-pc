@@ -696,17 +696,17 @@ namespace PCLockScreen
                 }
                 catch
                 {
-                    return null;
+                    return new List<Reminder>();
                 }
             }
             catch
             {
-                return null;
+                return new List<Reminder>();
             }
 
             if (jsonList == null || jsonList.Count == 0)
             {
-                return null;
+                return new List<Reminder>();
             }
 
             var allServerReminders = new List<ServerReminderDto>();

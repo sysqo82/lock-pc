@@ -333,7 +333,7 @@ namespace PCLockScreen
                         return;
                     }
 
-                    cachedReminders = await ServerSession.GetRemindersAsync();
+                    cachedReminders = (await ServerSession.GetRemindersAsync()) ?? new List<ServerSession.Reminder>();
                     Logger.Log($"Reminder update received: {cachedReminders.Count} reminders loaded");
                     
                     // Update lock screens if any are currently showing
@@ -405,7 +405,7 @@ namespace PCLockScreen
                         bool authOk = await ServerSession.EnsureLoggedInAsync(configManager);
                         if (authOk)
                         {
-                            cachedReminders = await ServerSession.GetRemindersAsync();
+                            cachedReminders = (await ServerSession.GetRemindersAsync()) ?? new List<ServerSession.Reminder>();
                             Logger.Log($"Initial reminder load: {cachedReminders.Count} reminders");
                         }
                     }
@@ -425,6 +425,8 @@ namespace PCLockScreen
         {
             try
             {
+                if (cachedReminders == null) return;
+
                 var now = DateTime.Now;
                 var currentTime = now.ToString("HH:mm");
                 var currentDay = now.DayOfWeek;
@@ -433,7 +435,7 @@ namespace PCLockScreen
                 foreach (var reminder in cachedReminders)
                 {
                     // Check if reminder applies to today
-                    if (!reminder.Days.Contains(currentDay))
+                    if (reminder?.Days == null || !reminder.Days.Contains(currentDay))
                         continue;
 
                     // Check if it's time for this reminder (within the current minute)
@@ -465,9 +467,10 @@ namespace PCLockScreen
 
         private List<ServerSession.Reminder> GetTodaysReminders()
         {
+            if (cachedReminders == null) return new List<ServerSession.Reminder>();
             var today = DateTime.Now.DayOfWeek;
             return cachedReminders
-                .Where(r => r.Days.Contains(today))
+                .Where(r => r != null && r.Days != null && r.Days.Contains(today))
                 .OrderBy(r => r.Time)
                 .ToList();
         }
@@ -1627,11 +1630,11 @@ namespace PCLockScreen
 
             Logger.Log("Activating lock window(s) on all screens");
 
-            // Update the lock windows with today's reminders
-            var todaysReminders = GetTodaysReminders();
-
             try
             {
+                // Update the lock windows with today's reminders
+                var todaysReminders = GetTodaysReminders();
+
                 // Clear any leftover entries before starting
                 activeLockWindows.Clear();
                 var screens = Screen.AllScreens;

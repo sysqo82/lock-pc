@@ -1,185 +1,57 @@
-# PC Lock Screen
+# Lock PC – Windows App
 
-A Windows desktop application that locks the screen and prevents user interaction with time-based controls and admin authentication.
+The part of **Lock PC** that runs on the Windows computer itself. It locks the screen at the times you've chosen, so the computer simply can't be used outside its allowed hours.
 
-## Features
+You set the schedule from a web dashboard or your phone – this app just makes sure it's followed.
 
-✅ **Full-Screen Lock**: Creates an overlay that blocks all interaction with Windows desktop  
-✅ **Time-Based Controls**: Configure allowed usage hours (e.g., 8 AM to 10 PM)  
-✅ **Admin Authentication**: Password-protected unlock mechanism  
-✅ **Task Manager Restrictions**: Disables Task Manager while the lock screen is active
-✅ **Keyboard Block**: Disables common shortcuts like Alt+F4, Alt+Tab, Ctrl+Alt+Delete  
+## What it does
 
-## Requirements
+- **Locks the screen on schedule** – a full-screen lock appears during blocked times and can't be closed, minimised or switched away from.
+- **Gives a heads-up first** – a warning pops up shortly before the lock kicks in, so nobody loses their work.
+- **Shows reminders** – today's reminders (homework, chores, anything you like) appear on the lock screen and as pop-ups.
+- **Admin unlock** – the account password unlocks the computer early if needed.
+- **Hard to get around** – while locked, it blocks the usual escape routes like Task Manager and keyboard shortcuts.
+- **Starts with Windows** – so it's always on without anyone having to remember.
+- **English and Hebrew** supported.
 
-- Windows 10 or later
-- .NET 6.0 SDK or later
-- Administrator privileges (for full protection features)
+## Getting started
 
-## Building the Application
+1. Install the app on the Windows PC (an installer can be built from `installer.iss`).
+2. Log in with your Lock PC account – the PC links itself to your account.
+3. Set up lock times and reminders from the dashboard or the Android admin app.
 
-### Option 1: Using .NET CLI (Recommended)
+## ⚠️ Worth knowing
 
-1. Install [.NET 6.0 SDK](https://dotnet.microsoft.com/download/dotnet/6.0) if not already installed
+This app deliberately makes the computer hard to use while it's locked. Make sure you know your account password before turning it on.
 
-2. Open terminal in project directory:
-   ```bash
-   cd "d:\D backup\My Documents\projects\lock-pc"
-   ```
+## The Lock PC family
 
-3. Build the project:
-   ```bash
-   dotnet build
-   ```
+| Project | What it is |
+|---|---|
+| **lock-pc** | The Windows app that does the locking (this one) |
+| [lock-pc-local](https://github.com/sysqo82/lock-pc-local) | The server and web dashboard, run from home |
+| [lock-pc-android](https://github.com/sysqo82/lock-pc-android) | Phone app for managing schedules on the go |
+| [lock-pc-android-reminders](https://github.com/sysqo82/lock-pc-android-reminders) | Phone app that receives reminders |
+| [lock-pc-server](https://github.com/sysqo82/lock-pc-server) | The earlier cloud-hosted version of the server |
 
-4. Publish as a single executable:
-   ```bash
-   dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
-   ```
+## How it's built
 
-The executable will be in: `bin\Release\net6.0-windows\win-x64\publish\PCLockScreen.exe`
+- **Language:** C# on **.NET 8**, with a **WPF** (Windows) interface.
+- **Talking to the server:** stays connected to the Lock PC server using **Socket.IO**, so lock, unlock, pause and reminder changes arrive instantly.
+- **Locking down the PC:** uses Windows system features to block keyboard shortcuts and Task Manager while locked.
+- **Starting with Windows:** set up through **Windows Task Scheduler**.
+- **Languages:** text lives in `Strings.resx` (English) and `Strings.he.resx` (Hebrew).
+- **Installer:** built with **Inno Setup** (`installer.iss`).
 
-### Option 2: Using Visual Studio
+## Building it yourself
 
-1. Install [Visual Studio 2022](https://visualstudio.microsoft.com/) with ".NET Desktop Development" workload
-2. Open `PCLockScreen.csproj` in Visual Studio
-3. Right-click project → Publish → Create a publish profile
-4. Select "Folder" as target
-5. Configure settings and publish
+You'll need **Windows 10 or later** and the **.NET 8 SDK** (or Visual Studio 2022 with ".NET desktop development").
 
-## How to Use
+- **In Visual Studio:** open `lock-pc.sln` and build.
+- **From the command line**, to make a single `.exe`:
+  ```bash
+  dotnet publish -c Release PcLockScreen.csproj -r win-x64 --self-contained -p:PublishSingleFile=true
+  ```
+- **To make an installer:** open `installer.iss` in Inno Setup and compile it.
 
-### Initial Setup
-
-1. **Run as Administrator**: Right-click `PCLockScreen.exe` → "Run as administrator"
-   - This is required for Task Manager blocking features
-
-2. **Set Admin Password**:
-   - Enter a password in the "Admin Settings" section
-   - Confirm the password
-   - Click "Set Password"
-   - **⚠️ Important**: Remember this password! You'll need it to unlock the screen
-
-### Configure Time Restrictions (Optional)
-
-1. Check "Enable Time Restrictions"
-2. Set allowed hours in HH:mm format (24-hour):
-   - Example: Start: `08:00`, End: `22:00`
-3. Click "Save Configuration"
-
-### Activate Lock Screen
-
-1. Click "Activate Lock" button
-2. The screen will be locked immediately
-3. Configuration window will hide
-
-### Unlocking
-
-**Method 1: Admin Password**
-- Enter the admin password on the lock screen
-- Click "Unlock" or press Enter
-
-**Method 2: Automatic (Time-based)**
-- If time restrictions are enabled, the screen automatically unlocks during allowed hours
-
-## Configuration Storage
-
-Settings are stored in:
-```
-%APPDATA%\PCLockScreen\
-├── config.json       (time settings)
-└── password.dat      (encrypted password)
-```
-
-## Security Features
-
-### 1. Task Manager Protection
-- Modifies Windows registry to disable Task Manager
-- Automatically re-enabled after unlocking
-
-### 2. Keyboard Blocking
-- Blocks Alt+F4 (close window)
-- Blocks Alt+Tab (switch windows)
-- Blocks Windows key
-- Attempts to block Ctrl+Alt+Delete (limited by Windows security)
-
-### 3. Window Protection
-- Always-on-top window
-- Cannot be minimized or closed
-- Hides from taskbar
-- Prevents close via OnClosing event
-
-### 4. Password Security
-- SHA-256 hashing
-- Salt-based encryption
-- Stored outside application directory
-
-## Important Warnings
-
-⚠️ **Administrator Access Required**: Full protection features require running as administrator.
-
-⚠️ **Password Recovery**: There is NO password recovery mechanism. If you forget the admin password, you may need to:
-- Delete `%APPDATA%\PCLockScreen\password.dat` from another account
-- Restart the computer in Safe Mode
-
-⚠️ **System Impact**: Task Manager blocking affects the entire user account, not just the application.
-
-⚠️ **Development/Testing**: During testing, keep the configuration window open or remember your password!
-
-## Troubleshooting
-
-### Lock screen doesn't block Task Manager
-- Ensure you're running as administrator
-- Check if antivirus is blocking registry modifications
-
-### Can't unlock with correct password
-- Verify Caps Lock is off
-- Try closing and reopening the application
-- Check `%APPDATA%\PCLockScreen\password.dat` exists
-
-### Application won't start
-- Install [.NET 6.0 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/6.0)
-- Right-click → Properties → Unblock the executable
-
-## Uninstalling
-
-1. Run the application and unlock the screen properly
-2. Delete the executable
-3. Optionally delete configuration:
-   ```
-   %APPDATA%\PCLockScreen\
-   ```
-
-## Development
-
-### Project Structure
-```
-PCLockScreen/
-├── App.xaml/.cs              - Application entry point
-├── MainWindow.xaml/.cs       - Configuration interface
-├── LockScreenWindow.xaml/.cs - Lock screen overlay
-├── ConfigManager.cs          - Configuration management
-├── ProcessProtection.cs      - Security features
-├── app.manifest              - Admin privilege request
-└── PCLockScreen.csproj       - Project file
-```
-
-### Technologies Used
-- C# .NET 6.0
-- WPF (Windows Presentation Foundation)
-- Windows API (P/Invoke)
-- Registry manipulation
-- SHA-256 encryption
-
-## License
-
-This software is provided as-is for educational and personal use. Use responsibly and at your own risk.
-
-## Disclaimer
-
-This application modifies Windows system settings and can prevent normal system interaction. Always ensure you have:
-- A working admin password set
-- Understanding of how to unlock the system
-- Ability to restart in Safe Mode if needed
-
-The developers are not responsible for any system lockouts or data loss.
+Run it as administrator so the protection features work fully.
